@@ -6,40 +6,27 @@ from datetime import datetime, timedelta, timezone
 import jwt
 from functools import wraps
 
-# Configuration - Load from Streamlit secrets or local fallback
+# Configuration - Load from Streamlit secrets
 def load_secrets():
-    """Load secrets from Streamlit Cloud or local fallback"""
+    """Load secrets from Streamlit secrets"""
     try:
-        # Try Streamlit Cloud secrets first
         SECRET_KEY = st.secrets["secret_key"]
         ADMIN_USERS = dict(st.secrets["admin_users"])
         return SECRET_KEY, ADMIN_USERS, "cloud"
-    except:
-        try:
-            # Fallback to local config file
-            import os
-            config_path = os.path.join(os.path.dirname(__file__), "local_config.json")
-            if os.path.exists(config_path):
-                with open(config_path, 'r') as f:
-                    config = json.load(f)
-                SECRET_KEY = config["SECRET_KEY"]
-                ADMIN_USERS = config["ADMIN_USERS"]
-                return SECRET_KEY, ADMIN_USERS, "local"
-            else:
-                raise FileNotFoundError("local_config.json not found")
-        except Exception as e:
-            st.error("❌ Please configure secrets in Streamlit Community Cloud settings or create local_config.json")
-            st.info("For local development, create local_config.json with:")
-            st.code('''
-{
-  "SECRET_KEY": "your-secret-key-here",
-  "ADMIN_USERS": {
-    "admin": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
-    "Gonhog": "2307f6b237dcc4de495b84c563d08b5cc362714c7699356a6a69f3994f51e6ae"
-  }
-}
-            ''')
-            st.stop()
+    except Exception as e:
+        st.error(f"❌ Error loading secrets: {str(e)}")
+        st.info("Please configure secrets in .streamlit/secrets.toml with:")
+        st.code('''
+secret_key = "your-secret-key-here"
+
+[admin_users]
+admin = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
+Gonhog = "2307f6b237dcc4de495b84c563d08b5cc362714c7699356a6a69f3994f51e6ae"
+
+github_token = "github_pat_your_token_here"
+csv_repo_url = "https://github.com/Gonhog-Creator/RoaRealmData"
+        ''')
+        st.stop()
 
 SECRET_KEY, ADMIN_USERS, secrets_source = load_secrets()
 

@@ -931,9 +931,26 @@ def load_partial_database_clean(st):
         import re
         from concurrent.futures import ThreadPoolExecutor, as_completed
         
-        # Get GitHub credentials
-        github_token = st.secrets["github_token"]
-        csv_repo_url = st.secrets["csv_repo_url"]
+        # Get GitHub credentials using the same approach as version 2.7
+        github_token = None
+        csv_repo_url = None
+        
+        if hasattr(st, 'secrets'):
+            all_secrets = dict(st.secrets)
+            
+            # Try root level first
+            if "github_token" in all_secrets:
+                github_token = st.secrets["github_token"]
+            if "csv_repo_url" in all_secrets:
+                csv_repo_url = st.secrets["csv_repo_url"]
+            
+            # Try admin_users level
+            if not github_token and "admin_users" in all_secrets:
+                admin_users = dict(st.secrets["admin_users"])
+                if "github_token" in admin_users:
+                    github_token = admin_users["github_token"]
+                if "csv_repo_url" in admin_users:
+                    csv_repo_url = admin_users["csv_repo_url"]
         
         if not github_token or not csv_repo_url:
             st.error("❌ GitHub credentials not configured")
@@ -1026,8 +1043,15 @@ def load_local_database_clean(st):
     from pathlib import Path
     
     try:
-        # Create local data directory on desktop
-        desktop_path = Path.home() / "Desktop" / "RoADashboard_Data"
+        # Create local data directory - use appropriate path for cloud vs local
+        # In cloud environment, use a temporary directory
+        if os.path.exists('/home/appuser'):
+            # Cloud environment - use temp directory
+            desktop_path = Path('/tmp') / 'RoADashboard_Data'
+        else:
+            # Local environment - use Desktop
+            desktop_path = Path.home() / "Desktop" / "RoADashboard_Data"
+        
         desktop_path.mkdir(exist_ok=True)
         
         # Create subdirectories
@@ -1060,12 +1084,30 @@ def load_local_database_clean(st):
                 
         # Check GitHub for new files if we have local files
         if local_files and not sync_needed and not force_sync:
-            # Store message container for cleanup
-            github_check_msg = st.info("🔍 Checking GitHub for new files...")
+            # Use empty container that can be cleared
+            github_check_msg = st.empty()
+            github_check_msg.markdown("🔍 Checking GitHub for new files...")
             try:
-                # Get GitHub credentials
-                github_token = st.secrets["github_token"]
-                csv_repo_url = st.secrets["csv_repo_url"]
+                # Get GitHub credentials using the same approach as version 2.7
+                github_token = None
+                csv_repo_url = None
+                
+                if hasattr(st, 'secrets'):
+                    all_secrets = dict(st.secrets)
+                    
+                    # Try root level first
+                    if "github_token" in all_secrets:
+                        github_token = st.secrets["github_token"]
+                    if "csv_repo_url" in all_secrets:
+                        csv_repo_url = st.secrets["csv_repo_url"]
+                    
+                    # Try admin_users level
+                    if not github_token and "admin_users" in all_secrets:
+                        admin_users = dict(st.secrets["admin_users"])
+                        if "github_token" in admin_users:
+                            github_token = admin_users["github_token"]
+                        if "csv_repo_url" in admin_users:
+                            csv_repo_url = admin_users["csv_repo_url"]
                 
                 if github_token and csv_repo_url:
                     # Extract owner and repo from URL
@@ -1085,29 +1127,27 @@ def load_local_database_clean(st):
                     # Check for new or missing files
                     missing_files = remote_file_paths - local_file_paths
                     if missing_files:
-                        st.info(f"📥 Found {len(missing_files)} new files on GitHub. Syncing...")
+                        new_files_msg = st.empty()
+                        new_files_msg.markdown(f"📥 Found {len(missing_files)} new files on GitHub. Syncing...")
                         sync_needed = True
                     else:
-                        # Store and clear the up-to-date message
-                        up_to_date_msg = st.info("✅ Local database is up to date")
-                        # Clear the GitHub check message after a delay
-                        import time
-                        time.sleep(2)
+                        # Clear the GitHub check message
                         github_check_msg.empty()
-                        time.sleep(1)
-                        up_to_date_msg.empty()
                 else:
+                    github_check_msg.empty()
                     st.warning("⚠️ GitHub credentials not configured for sync check")
             except Exception as e:
+                github_check_msg.empty()
                 st.warning(f"⚠️ Failed to check for updates: {e}")
         
         if not local_files or sync_needed or force_sync:
+            sync_msg = st.empty()
             if not local_files:
-                st.info("📥 No local files found. Syncing from GitHub...")
+                sync_msg.markdown("📥 No local files found. Syncing from GitHub...")
             elif sync_needed:
-                st.info("🔄 Sync needed. Updating from GitHub...")
+                sync_msg.markdown("🔄 Sync needed. Updating from GitHub...")
             else:
-                st.info("🔄 Force sync requested. Updating from GitHub...")
+                sync_msg.markdown("🔄 Force sync requested. Updating from GitHub...")
             
             # Sync files from GitHub
             if sync_needed:
@@ -1117,6 +1157,20 @@ def load_local_database_clean(st):
             else:
                 # Full sync for first time or force sync
                 success = sync_files_from_github(local_csv_dir, st)
+            
+            # Clear all sync messages immediately
+            sync_msg.empty()
+            
+            try:
+                new_files_msg.empty()
+            except:
+                pass
+            
+            try:
+                github_check_msg.empty()
+            except:
+                pass
+            
             if not success:
                 st.warning("⚠️ Failed to sync from GitHub. Falling back to full mode.")
                 return load_full_database_clean(st)
@@ -1248,9 +1302,26 @@ def sync_files_from_github(local_dir, st, missing_files=None):
         import gzip
         from io import StringIO
         
-        # Get GitHub credentials
-        github_token = st.secrets["github_token"]
-        csv_repo_url = st.secrets["csv_repo_url"]
+        # Get GitHub credentials using the same approach as version 2.7
+        github_token = None
+        csv_repo_url = None
+        
+        if hasattr(st, 'secrets'):
+            all_secrets = dict(st.secrets)
+            
+            # Try root level first
+            if "github_token" in all_secrets:
+                github_token = st.secrets["github_token"]
+            if "csv_repo_url" in all_secrets:
+                csv_repo_url = st.secrets["csv_repo_url"]
+            
+            # Try admin_users level
+            if not github_token and "admin_users" in all_secrets:
+                admin_users = dict(st.secrets["admin_users"])
+                if "github_token" in admin_users:
+                    github_token = admin_users["github_token"]
+                if "csv_repo_url" in admin_users:
+                    csv_repo_url = admin_users["csv_repo_url"]
         
         if not github_token or not csv_repo_url:
             st.error("❌ GitHub credentials not configured")
@@ -1296,7 +1367,6 @@ def sync_files_from_github(local_dir, st, missing_files=None):
                 if filename in missing_files_set:
                     filtered_files.append(file_info)
             csv_files = filtered_files
-            st.info(f"📥 Downloading {len(csv_files)} new files...")
         
         # Download files concurrently with ThreadPoolExecutor
         from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -1407,9 +1477,11 @@ def sync_files_from_github(local_dir, st, missing_files=None):
         # No separate progress updater thread - will update from main thread only
         
         # Use simple sequential downloads for reliability with Streamlit
-        st.info("🔄 Starting sequential downloads...")
+        download_start_msg = st.empty()
+        download_start_msg.markdown("🔄 Starting sequential downloads...")
         
         if not csv_files:
+            download_start_msg.empty()
             st.warning("⚠️ No files to download!")
             return False
         
@@ -1485,9 +1557,9 @@ def sync_files_from_github(local_dir, st, missing_files=None):
             completed_count = i + 1
             update_progress()
             
-            # Show progress every 10 files
+            # Show progress every 10 files using the status_text container
             if (i + 1) % 10 == 0:
-                st.info(f"📊 Downloaded {i + 1}/{total_files} files")
+                status_text.markdown(f"📊 Downloaded {i + 1}/{total_files} files")
         
         # Show failed downloads if any
         if failed_downloads:
@@ -1497,10 +1569,12 @@ def sync_files_from_github(local_dir, st, missing_files=None):
                 if len(failed_downloads) > 10:
                     st.write(f"... and {len(failed_downloads) - 10} more files")
         
-        # Clear progress bar
+        # Clear progress bar, status text, and download start message
         progress_bar.empty()
+        status_text.empty()
+        download_start_msg.empty()
         
-        st.success(f"✅ Successfully synced {downloaded_count} files to local directory")
+        # Don't show success message - just clear everything
         return True
         
     except Exception as e:
