@@ -38,6 +38,25 @@ def parse_comprehensive_csv_from_string(content, filename):
         # Read the comprehensive CSV from string
         df = pd.read_csv(StringIO(content))
         
+        # Check if this is a compressed file (has 'compressed' field)
+        is_compressed = 'compressed' in df.columns and df['compressed'].iloc[0] == 'true'
+        
+        if is_compressed:
+            # For compressed files, only essential fields are present
+            # Fill in missing fields with default values for compatibility
+            print(f"Detected compressed file: {filename}")
+            # Set defaults for missing fields
+            items = {}
+            resources = {}
+            buildings_data = {}
+            troops_data = {}
+            skins_data = {}
+            quests_data = {'completed_quests': 0, 'completed_research': 0, 'in_progress_quests': 0}
+            ceasefire_data = {}
+        else:
+            # Full file with all fields
+            pass
+        
         # Calculate realm summary data
         total_players = len(df)
         
@@ -45,108 +64,112 @@ def parse_comprehensive_csv_from_string(content, filename):
         total_power = 0
         if 'power' in df.columns:
             total_power = df['power'].fillna(0).sum()
+        elif 'total_power' in df.columns:
+            total_power = df['total_power'].fillna(0).sum()
         
         # Calculate average power per player
         avg_power_per_player = total_power / total_players if total_players > 0 else 0
         
-        # Aggregate items data from individual player rows
-        items = {}
-        # Try items_json format first (new comprehensive format)
-        if 'items_json' in df.columns:
-            for _, row in df.iterrows():
-                try:
-                    items_json_str = row['items_json']
-                    if pd.notna(items_json_str) and items_json_str:
-                        # Handle double-escaped JSON from CSV: "{\"key\": value}"
-                        # pandas read_csv should handle the outer quotes, but we need to handle inner escaping
-                        items_dict = json.loads(items_json_str)
-                        for item_name, count in items_dict.items():
-                            items[item_name] = items.get(item_name, 0) + count
-                except:
-                    continue
-        else:
-            # Fallback to old format (individual item columns)
-            item_columns = [col for col in df.columns if col.startswith('item_')]
-            for col in item_columns:
-                item_name = col.replace('item_', '')
-                total_amount = df[col].fillna(0).sum()
-                if total_amount > 0:
-                    items[item_name] = total_amount
+        # Aggregate items data from individual player rows (only for full files)
+        if not is_compressed:
+            items = {}
+            # Try items_json format first (new comprehensive format)
+            if 'items_json' in df.columns:
+                for _, row in df.iterrows():
+                    try:
+                        items_json_str = row['items_json']
+                        if pd.notna(items_json_str) and items_json_str:
+                            # Handle double-escaped JSON from CSV: "{\"key\": value}"
+                            # pandas read_csv should handle the outer quotes, but we need to handle inner escaping
+                            items_dict = json.loads(items_json_str)
+                            for item_name, count in items_dict.items():
+                                items[item_name] = items.get(item_name, 0) + count
+                    except:
+                        continue
+            else:
+                # Fallback to old format (individual item columns)
+                item_columns = [col for col in df.columns if col.startswith('item_')]
+                for col in item_columns:
+                    item_name = col.replace('item_', '')
+                    total_amount = df[col].fillna(0).sum()
+                    if total_amount > 0:
+                        items[item_name] = total_amount
 
-        # Aggregate resources (comprehensive format uses resource_ prefix)
-        resources = {}
-        resource_columns = ['resource_gold', 'resource_lumber', 'resource_stone', 'resource_metal', 'resource_food', 'resource_ruby']
-        resource_names = ['gold', 'lumber', 'stone', 'metal', 'food', 'ruby']
-        
-        for col, name in zip(resource_columns, resource_names):
-            if col in df.columns:
-                total_amount = df[col].fillna(0).sum()
-                resources[name] = total_amount
-        
-        # Extract additional data for new tabs
-        buildings_data = {}  # Buildings data extraction moved to buildings.py
-        
-        # Parse troops data from JSON format
-        troops_data = {}
-        if 'troops_json' in df.columns:
-            for _, row in df.iterrows():
-                try:
-                    troops_json_str = row['troops_json']
-                    if pd.notna(troops_json_str) and troops_json_str:
-                        troops_dict = json.loads(troops_json_str)
-                        for troop_name, count in troops_dict.items():
-                            # Skip resource columns (they start with 'resource_')
-                            if not troop_name.startswith('resource_'):
-                                troops_data[troop_name] = troops_data.get(troop_name, 0) + count
-                except:
-                    continue
-        else:
-            # Fallback to old format (individual troop columns)
-            troop_columns = [col for col in df.columns if col.startswith('troop_')]
-            for col in troop_columns:
-                troop_name = col
-                total_amount = df[col].fillna(0).sum()
-                if total_amount > 0:
-                    troops_data[troop_name] = total_amount
-        
-        # Parse skins data
-        skins_data = {}
-        if 'equipped_skins' in df.columns:
-            df['equipped_skins'].value_counts().to_dict()
-        
-        # Parse quests and research data
-        quests_data = {
-            'completed_quests': df['completed_quests_count'].fillna(0).sum(),
-            'completed_research': df['completed_research_count'].fillna(0).sum(),
-            'in_progress_quests': df['in_progress_quests_count'].fillna(0).sum()
-        }
-        
-        # Calculate ceasefire protection data - always initialize as empty dict
-        ceasefire_data = {}
-        
-        # Only calculate ceasefire data for comprehensive CSV files with required columns
-        if 'active_effects' in df.columns and 'resource_gold' in df.columns:
-            # Check for ceasefire effects (prevent_attacks) - match ceasefire tab logic
-            attack_prevention_effects = ['prevent_attacks:1']
-            df['has_ceasefire'] = df['active_effects'].fillna('').astype(str).apply(
-                lambda x: any(effect in x for effect in attack_prevention_effects)
-            )
-            
-            # Calculate protected resources for each resource type
+            # Aggregate resources (comprehensive format uses resource_ prefix)
+            resources = {}
             resource_columns = ['resource_gold', 'resource_lumber', 'resource_stone', 'resource_metal', 'resource_food', 'resource_ruby']
             resource_names = ['gold', 'lumber', 'stone', 'metal', 'food', 'ruby']
             
             for col, name in zip(resource_columns, resource_names):
                 if col in df.columns:
                     total_amount = df[col].fillna(0).sum()
-                    protected_amount = df[df['has_ceasefire']][col].fillna(0).sum()
-                    protected_percentage = (protected_amount / total_amount * 100) if total_amount > 0 else 0
-                    
-                    ceasefire_data[name] = {
-                        'total': total_amount,
-                        'protected': protected_amount,
-                        'protected_percentage': protected_percentage
-                    }
+                    resources[name] = total_amount
+        
+        # Extract additional data for new tabs (only for full files)
+        if not is_compressed:
+            buildings_data = {}  # Buildings data extraction moved to buildings.py
+            
+            # Parse troops data from JSON format
+            troops_data = {}
+            if 'troops_json' in df.columns:
+                for _, row in df.iterrows():
+                    try:
+                        troops_json_str = row['troops_json']
+                        if pd.notna(troops_json_str) and troops_json_str:
+                            troops_dict = json.loads(troops_json_str)
+                            for troop_name, count in troops_dict.items():
+                                # Skip resource columns (they start with 'resource_')
+                                if not troop_name.startswith('resource_'):
+                                    troops_data[troop_name] = troops_data.get(troop_name, 0) + count
+                    except:
+                        continue
+            else:
+                # Fallback to old format (individual troop columns)
+                troop_columns = [col for col in df.columns if col.startswith('troop_')]
+                for col in troop_columns:
+                    troop_name = col
+                    total_amount = df[col].fillna(0).sum()
+                    if total_amount > 0:
+                        troops_data[troop_name] = total_amount
+            
+            # Parse skins data
+            skins_data = {}
+            if 'equipped_skins' in df.columns:
+                df['equipped_skins'].value_counts().to_dict()
+            
+            # Parse quests and research data
+            quests_data = {
+                'completed_quests': df['completed_quests_count'].fillna(0).sum(),
+                'completed_research': df['completed_research_count'].fillna(0).sum(),
+                'in_progress_quests': df['in_progress_quests_count'].fillna(0).sum()
+            }
+            
+            # Calculate ceasefire protection data - always initialize as empty dict
+            ceasefire_data = {}
+            
+            # Only calculate ceasefire data for comprehensive CSV files with required columns
+            if 'active_effects' in df.columns and 'resource_gold' in df.columns:
+                # Check for ceasefire effects (prevent_attacks) - match ceasefire tab logic
+                attack_prevention_effects = ['prevent_attacks:1']
+                df['has_ceasefire'] = df['active_effects'].fillna('').astype(str).apply(
+                    lambda x: any(effect in x for effect in attack_prevention_effects)
+                )
+                
+                # Calculate protected resources for each resource type
+                resource_columns = ['resource_gold', 'resource_lumber', 'resource_stone', 'resource_metal', 'resource_food', 'resource_ruby']
+                resource_names = ['gold', 'lumber', 'stone', 'metal', 'food', 'ruby']
+                
+                for col, name in zip(resource_columns, resource_names):
+                    if col in df.columns:
+                        total_amount = df[col].fillna(0).sum()
+                        protected_amount = df[df['has_ceasefire']][col].fillna(0).sum()
+                        protected_percentage = (protected_amount / total_amount * 100) if total_amount > 0 else 0
+                        
+                        ceasefire_data[name] = {
+                            'total': total_amount,
+                            'protected': protected_amount,
+                            'protected_percentage': protected_percentage
+                        }
         
         realm_data = {
             'date': date,
@@ -201,6 +224,25 @@ def parse_comprehensive_csv(file_path):
         # Read the comprehensive CSV
         df = pd.read_csv(file_path)
         
+        # Check if this is a compressed file (has 'compressed' field)
+        is_compressed = 'compressed' in df.columns and df['compressed'].iloc[0] == 'true'
+        
+        if is_compressed:
+            # For compressed files, only essential fields are present
+            # Fill in missing fields with default values for compatibility
+            print(f"Detected compressed file: {filename}")
+            # Set defaults for missing fields
+            items = {}
+            resources = {}
+            buildings_data = {}
+            troops_data = {}
+            skins_data = {}
+            quests_data = {'completed_quests': 0, 'completed_research': 0, 'in_progress_quests': 0}
+            ceasefire_data = {}
+        else:
+            # Full file with all fields
+            pass
+        
         # Calculate realm summary data
         total_players = len(df)
         
@@ -208,108 +250,111 @@ def parse_comprehensive_csv(file_path):
         total_power = 0
         if 'power' in df.columns:
             total_power = df['power'].fillna(0).sum()
+        elif 'total_power' in df.columns:
+            total_power = df['total_power'].fillna(0).sum()
         
         # Calculate average power per player
         avg_power_per_player = total_power / total_players if total_players > 0 else 0
         
-        # Aggregate items data from individual player rows
-        items = {}
-        # Try items_json format first (new comprehensive format)
-        if 'items_json' in df.columns:
-            for _, row in df.iterrows():
-                try:
-                    items_json_str = row['items_json']
-                    if pd.notna(items_json_str) and items_json_str:
-                        # Handle double-escaped JSON from CSV: "{\"key\": value}"
-                        # pandas read_csv should handle the outer quotes, but we need to handle inner escaping
-                        items_dict = json.loads(items_json_str)
-                        for item_name, count in items_dict.items():
-                            items[item_name] = items.get(item_name, 0) + count
-                except:
-                    continue
-        else:
-            # Fallback to old format (individual item columns)
-            item_columns = [col for col in df.columns if col.startswith('item_')]
-            for col in item_columns:
-                item_name = col.replace('item_', '')
-                total_amount = df[col].fillna(0).sum()
-                if total_amount > 0:
-                    items[item_name] = total_amount
+        # Aggregate items data from individual player rows (only for full files)
+        if not is_compressed:
+            items = {}
+            # Try items_json format first (new comprehensive format)
+            if 'items_json' in df.columns:
+                for _, row in df.iterrows():
+                    try:
+                        items_json_str = row['items_json']
+                        if pd.notna(items_json_str) and items_json_str:
+                            # Handle double-escaped JSON from CSV: "{\"key\": value}"
+                            # pandas read_csv should handle the outer quotes, but we need to handle inner escaping
+                            items_dict = json.loads(items_json_str)
+                            for item_name, count in items_dict.items():
+                                items[item_name] = items.get(item_name, 0) + count
+                    except:
+                        continue
+            else:
+                # Fallback to old format (individual item columns)
+                item_columns = [col for col in df.columns if col.startswith('item_')]
+                for col in item_columns:
+                    item_name = col.replace('item_', '')
+                    total_amount = df[col].fillna(0).sum()
+                    if total_amount > 0:
+                        items[item_name] = total_amount
 
-        # Aggregate resources (comprehensive format uses resource_ prefix)
-        resources = {}
-        resource_columns = ['resource_gold', 'resource_lumber', 'resource_stone', 'resource_metal', 'resource_food', 'resource_ruby']
-        resource_names = ['gold', 'lumber', 'stone', 'metal', 'food', 'ruby']
-        
-        for col, name in zip(resource_columns, resource_names):
-            if col in df.columns:
-                total_amount = df[col].fillna(0).sum()
-                resources[name] = total_amount
-        
-        # Extract additional data for new tabs
-        buildings_data = {}  # Buildings data extraction moved to buildings.py
-        
-        # Parse troops data from JSON format
-        troops_data = {}
-        if 'troops_json' in df.columns:
-            for _, row in df.iterrows():
-                try:
-                    troops_json_str = row['troops_json']
-                    if pd.notna(troops_json_str) and troops_json_str:
-                        troops_dict = json.loads(troops_json_str)
-                        for troop_name, count in troops_dict.items():
-                            # Skip resource columns (they start with 'resource_')
-                            if not troop_name.startswith('resource_'):
-                                troops_data[troop_name] = troops_data.get(troop_name, 0) + count
-                except:
-                    continue
-        else:
-            # Fallback to old format (individual troop columns)
-            troop_columns = [col for col in df.columns if col.startswith('troop_')]
-            for col in troop_columns:
-                troop_name = col
-                total_amount = df[col].fillna(0).sum()
-                if total_amount > 0:
-                    troops_data[troop_name] = total_amount
-        
-        # Parse skins data
-        skins_data = {}
-        if 'equipped_skins' in df.columns:
-            df['equipped_skins'].value_counts().to_dict()
-        
-        # Parse quests and research data
-        quests_data = {
-            'completed_quests': df['completed_quests_count'].fillna(0).sum(),
-            'completed_research': df['completed_research_count'].fillna(0).sum(),
-            'in_progress_quests': df['in_progress_quests_count'].fillna(0).sum()
-        }
-        
-        # Calculate ceasefire protection data - always initialize as empty dict
-        ceasefire_data = {}
-        
-        # Only calculate ceasefire data for comprehensive CSV files with required columns
-        if 'active_effects' in df.columns and 'resource_gold' in df.columns:
-            # Check for ceasefire effects (prevent_attacks) - match ceasefire tab logic
-            attack_prevention_effects = ['prevent_attacks:1']
-            df['has_ceasefire'] = df['active_effects'].fillna('').astype(str).apply(
-                lambda x: any(effect in x for effect in attack_prevention_effects)
-            )
-            
-            # Calculate protected resources for each resource type
+            # Aggregate resources (comprehensive format uses resource_ prefix)
+            resources = {}
             resource_columns = ['resource_gold', 'resource_lumber', 'resource_stone', 'resource_metal', 'resource_food', 'resource_ruby']
             resource_names = ['gold', 'lumber', 'stone', 'metal', 'food', 'ruby']
             
             for col, name in zip(resource_columns, resource_names):
                 if col in df.columns:
                     total_amount = df[col].fillna(0).sum()
-                    protected_amount = df[df['has_ceasefire']][col].fillna(0).sum()
-                    protected_percentage = (protected_amount / total_amount * 100) if total_amount > 0 else 0
-                    
-                    ceasefire_data[name] = {
-                        'total': total_amount,
-                        'protected': protected_amount,
-                        'protected_percentage': protected_percentage
-                    }
+                    resources[name] = total_amount
+            
+            # Extract additional data for new tabs
+            buildings_data = {}  # Buildings data extraction moved to buildings.py
+            
+            # Parse troops data from JSON format
+            troops_data = {}
+            if 'troops_json' in df.columns:
+                for _, row in df.iterrows():
+                    try:
+                        troops_json_str = row['troops_json']
+                        if pd.notna(troops_json_str) and troops_json_str:
+                            troops_dict = json.loads(troops_json_str)
+                            for troop_name, count in troops_dict.items():
+                                # Skip resource columns (they start with 'resource_')
+                                if not troop_name.startswith('resource_'):
+                                    troops_data[troop_name] = troops_data.get(troop_name, 0) + count
+                    except:
+                        continue
+            else:
+                # Fallback to old format (individual troop columns)
+                troop_columns = [col for col in df.columns if col.startswith('troop_')]
+                for col in troop_columns:
+                    troop_name = col
+                    total_amount = df[col].fillna(0).sum()
+                    if total_amount > 0:
+                        troops_data[troop_name] = total_amount
+            
+            # Parse skins data
+            skins_data = {}
+            if 'equipped_skins' in df.columns:
+                df['equipped_skins'].value_counts().to_dict()
+            
+            # Parse quests and research data
+            quests_data = {
+                'completed_quests': df['completed_quests_count'].fillna(0).sum(),
+                'completed_research': df['completed_research_count'].fillna(0).sum(),
+                'in_progress_quests': df['in_progress_quests_count'].fillna(0).sum()
+            }
+            
+            # Calculate ceasefire protection data - always initialize as empty dict
+            ceasefire_data = {}
+            
+            # Only calculate ceasefire data for comprehensive CSV files with required columns
+            if 'active_effects' in df.columns and 'resource_gold' in df.columns:
+                # Check for ceasefire effects (prevent_attacks) - match ceasefire tab logic
+                attack_prevention_effects = ['prevent_attacks:1']
+                df['has_ceasefire'] = df['active_effects'].fillna('').astype(str).apply(
+                    lambda x: any(effect in x for effect in attack_prevention_effects)
+                )
+                
+                # Calculate protected resources for each resource type
+                resource_columns = ['resource_gold', 'resource_lumber', 'resource_stone', 'resource_metal', 'resource_food', 'resource_ruby']
+                resource_names = ['gold', 'lumber', 'stone', 'metal', 'food', 'ruby']
+                
+                for col, name in zip(resource_columns, resource_names):
+                    if col in df.columns:
+                        total_amount = df[col].fillna(0).sum()
+                        protected_amount = df[df['has_ceasefire']][col].fillna(0).sum()
+                        protected_percentage = (protected_amount / total_amount * 100) if total_amount > 0 else 0
+                        
+                        ceasefire_data[name] = {
+                            'total': total_amount,
+                            'protected': protected_amount,
+                            'protected_percentage': protected_percentage
+                        }
         
         realm_data = {
             'date': date,

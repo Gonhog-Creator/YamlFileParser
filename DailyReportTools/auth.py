@@ -88,18 +88,16 @@ def login_page():
         st.subheader("Database Mode")
         database_mode_index = st.radio(
             "Select database loading mode:",
-            options=["Full Database", "Partial Database", "Local Database"],
+            options=["Full Database", "Partial Database"],
             key="database_mode_selection",
-            help="Full: Loads all data (slower)\nPartial: Loads recent data + 2 points per day (faster)\nLocal: Uses local files (fastest)"
+            help="Full: Loads all data (slower)\nPartial: Loads recent data + 2 points per day (faster)"
         )
         
         # Convert selection to mode value
         if database_mode_index == "Full Database":
             database_mode = "full"
-        elif database_mode_index == "Partial Database":
-            database_mode = "partial"
         else:
-            database_mode = "local"
+            database_mode = "partial"
         
         submit_button = st.form_submit_button("Login")
         

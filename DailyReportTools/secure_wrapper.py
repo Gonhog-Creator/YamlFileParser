@@ -214,7 +214,7 @@ def main():
         os.chdir(current_dir)
         
         # Read and execute the dashboard code
-        with open(dashboard_path, 'r') as f:
+        with open(dashboard_path, 'r', encoding='utf-8') as f:
             dashboard_code = f.read()
         
         # Execute the dashboard code in the current namespace

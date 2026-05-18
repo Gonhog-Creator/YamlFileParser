@@ -16,7 +16,7 @@ from collections import defaultdict
 from datetime import datetime
 
 # Parser version - increment this when making breaking changes to the CSV format
-PARSER_VERSION = "1.2"
+PARSER_VERSION = "1.3"
 
 class PlayerDataAnalyzer:
     def __init__(self, database_path):
@@ -922,6 +922,47 @@ class PlayerDataAnalyzer:
         
         return os.path.join(self.database_path, f"comprehensive_player_data_{date_formatted}.csv")
 
+    def is_file_older_than_two_weeks(self, tar_file):
+        """Check if the tar file is older than 2 weeks"""
+        try:
+            tar_filename = os.path.basename(tar_file)
+            # Extract date from format: csv-exports_backup_YYYY-MM-DD_HH-MM-SS_csv.tar.gz
+            date_match = tar_filename.split('backup_')[1].split('_csv.tar.gz')[0] if 'backup_' in tar_filename else None
+            if date_match:
+                # Parse the date: YYYY-MM-DD
+                date_part = date_match.split('_')[0]
+                file_date = datetime.strptime(date_part, "%Y-%m-%d")
+                # Calculate age in days
+                age_days = (datetime.now() - file_date).days
+                return age_days > 14
+        except:
+            pass
+        return False
+
+    def compress_player_data(self, player_data):
+        """Compress player data by removing specified fields for older files"""
+        # Fields to REMOVE (user specified)
+        fields_to_remove = [
+            'user_email', 'user_created_at', 'last_login_ip',
+            'attacks_won', 'attacks_lost', 'autowaver_attacks', 'manual_attacks', 'target_types_json',
+            'buildings_metadata', 'primary_city_coordinates', 'all_settlement_coordinates',
+            'equipped_skins', 'unlocked_skins', 'total_skins_equipped', 'total_skins_unlocked',
+            'research_metadata', 'total_research_level', 'completed_research_count', 'research_types',
+            'quest_metadata', 'completed_quests_count', 'in_progress_quests_count', 'total_quests_count', 'quest_types',
+            'total_effects', 'active_effects', 'permanent_effects', 'effect_types', 'active_effects_count', 'permanent_effects_count'
+        ]
+        
+        compressed_data = {}
+        for field, value in player_data.items():
+            if field not in fields_to_remove:
+                compressed_data[field] = value
+        
+        # Add parser version
+        compressed_data['parser_version'] = PARSER_VERSION
+        compressed_data['compressed'] = 'true'  # Mark as compressed
+        
+        return compressed_data
+
     def generate_comprehensive_csv(self):
         """Main function to generate the comprehensive CSV for all tar files"""
         print("Starting comprehensive player data analysis...")
@@ -955,6 +996,13 @@ class PlayerDataAnalyzer:
                 
                 if not comprehensive_data:
                     raise ValueError("No data to process!")
+                
+                # Check if file is older than 2 weeks and compress if so
+                is_old_file = self.is_file_older_than_two_weeks(tar_file)
+                if is_old_file:
+                    print(f"File is older than 2 weeks, compressing data...")
+                    comprehensive_data = [self.compress_player_data(player) for player in comprehensive_data]
+                    print(f"Compressed to {len(comprehensive_data)} records with essential fields only")
                 
                 # Save to CSV
                 fieldnames = self.write_csv(comprehensive_data, output_file)
