@@ -17,6 +17,9 @@ SKIN_NAME_MAPPING = {
     'skin_city_top1_challenge_pvp_1(building)': 'City Top 1 PvP Challenge',
     'skin_city_hanami(building)': 'City Hanami',
     'skin_avatar_border_hanami(avatar_border)': 'Hanami Avatar Border',
+    'skin_avatar_stone_pack(avatar_border)': 'Stone Pack Avatar Border',
+    'skin_stone_pack_fortress(building)': 'Stone Pack Fortress',
+    'kin_avatar_border_stone_pack(avatar_border)': 'Stone Pack Avatar Border',
 }
 
 def get_common_skin_name(json_name):
@@ -137,6 +140,8 @@ def create_skins_tab(filtered_df):
                             'Water Pack Fortress': 'skin_water_pack_fortress.webp',
                             'City Hanami': 'city_hanami.webp',
                             'Hanami Avatar Border': 'avatar_border_hanami.webp',
+                            'Stone Pack Avatar Border': 'skin_avatar_stone_pack.webp',
+                            'Stone Pack Fortress': 'skin_stone_pack_fortress.webp',
                         }
                         
                         # Sort skins by player count

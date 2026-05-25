@@ -146,6 +146,8 @@ def create_buildings_tab(filtered_df):
                     'fortress': 'fortress.webp',
                     'fountain_of_life': 'foutain_of_life.webp',
                     'garrison': 'garrison.webp',
+                    'glowing_mandrake_cache': 'glowing_mandrake_cache.webp',
+                    'glowing_mandrake_factory': 'glowing_mandrake_factory.webp',
                     'home': 'home.webp',
                     'lumbermill': 'lumbermill.webp',
                     'metalsmith': 'metalsmith.webp',

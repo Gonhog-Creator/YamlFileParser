@@ -19,7 +19,7 @@ def render_resources_chart(resource_data, selected_name):
         
         # Separate resources into main resources and elite items
         main_resources = ['Gold', 'Lumber', 'Stone', 'Metal', 'Food']
-        elite_resources = ['Fangtooth']
+        elite_resources = ['Fangtooth', 'Glowing Mandrake']
         
         # Get available resources
         resource_names = sorted(set(resource_data.keys()))  # Remove duplicates and sort
@@ -255,25 +255,42 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
         st.metric("Power", f"{int(player_data.get('power', 0)):,}")
     
     with col3:
-        # Calculate outposts
-        has_outpost = False
+        # Calculate outposts and determine all outpost types based on buildings
+        outpost_types = []
         if 'buildings_metadata' in player_data and pd.notna(player_data['buildings_metadata']):
             settlements = str(player_data['buildings_metadata']).split('|')
-            has_outpost = any('outpost' in s.lower() for s in settlements)
+            for settlement in settlements:
+                settlement_lower = settlement.lower()
+                if '[outpost]' in settlement_lower or 'outpost' in settlement_lower:
+                    # Determine outpost type by checking buildings
+                    has_glowing_mandrake = 'glowing_mandrake' in settlement_lower
+                    has_fangtooth = 'fangtooth' in settlement_lower
+                    
+                    if has_glowing_mandrake and 'stone_outpost' not in outpost_types:
+                        outpost_types.append('stone_outpost')
+                    elif has_fangtooth and 'water_outpost' not in outpost_types:
+                        outpost_types.append('water_outpost')
+                    elif 'stone_outpost' not in outpost_types and 'water_outpost' not in outpost_types:
+                        # Default to water if no specific buildings found
+                        outpost_types.append('water_outpost')
         
-        # Display outpost icon with check/X
-        icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Images", "water_outpost.webp")
-        if os.path.exists(icon_path):
-            try:
-                with open(icon_path, 'rb') as f:
-                    img_data = base64.b64encode(f.read()).decode('utf-8')
-                    img_data_url = f"data:image/webp;base64,{img_data}"
-                    status_icon = "✓" if has_outpost else "✗"
-                    st.markdown(f"<div style='text-align: center;'><div style='font-size: 12px; color: #666; margin-bottom: 5px;'>Outpost</div><div style='position: relative; display: inline-block;'><img src='{img_data_url}' style='width: 50px; height: 50px;'><div style='position: absolute; top: -5px; right: -5px; font-size: 30px; font-weight: bold; color: {'#4CAF50' if has_outpost else '#F44336'};'>{status_icon}</div></div></div>", unsafe_allow_html=True)
-            except:
-                st.metric("Outpost", "Yes" if has_outpost else "No")
+        # Display all outpost icons with checkmarks
+        if outpost_types:
+            outpost_html = "<div style='text-align: center;'><div style='font-size: 12px; color: #666; margin-bottom: 5px;'>Outpost</div><div style='display: flex; justify-content: center; gap: 5px;'>"
+            for outpost_type in outpost_types:
+                icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Images", f"{outpost_type}.webp")
+                if os.path.exists(icon_path):
+                    try:
+                        with open(icon_path, 'rb') as f:
+                            img_data = base64.b64encode(f.read()).decode('utf-8')
+                            img_data_url = f"data:image/webp;base64,{img_data}"
+                            outpost_html += f"<div style='position: relative; display: inline-block;'><img src='{img_data_url}' style='width: 50px; height: 50px;'><div style='position: absolute; top: -5px; right: -5px; font-size: 30px; font-weight: bold; color: #4CAF50;'>✓</div></div>"
+                    except:
+                        pass
+            outpost_html += "</div></div>"
+            st.markdown(outpost_html, unsafe_allow_html=True)
         else:
-            st.metric("Outpost", "Yes" if has_outpost else "No")
+            st.metric("Outpost", "No")
     
     with col4:
         # Skins section as a column
@@ -390,8 +407,8 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
                                 except:
                                     continue
                         
-                        # Filter out Great Dragon and Water Dragon (exact match, case-insensitive)
-                        dragons_to_filter = ['great dragon', 'water dragon', 'great_dragon', 'water_dragon']
+                        # Filter out Great Dragon, Water Dragon, and Stone Dragon (exact match, case-insensitive)
+                        dragons_to_filter = ['great dragon', 'water dragon', 'stone dragon', 'great_dragon', 'water_dragon', 'stone_dragon']
                         all_troop_types = [t for t in all_troop_types if t.lower() not in dragons_to_filter]
                         
                         # Build row with all troop types, filling missing with 0

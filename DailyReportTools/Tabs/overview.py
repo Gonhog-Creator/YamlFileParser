@@ -351,6 +351,9 @@ def create_overview_tab(filtered_df):
                                     # Count players with Water Dragon
                                     if 'water_dragon' in troops_dict and troops_dict['water_dragon'] > 0:
                                         dragons_data['water_dragon'] = dragons_data.get('water_dragon', 0) + 1
+                                    # Count players with Stone Dragon
+                                    if 'stone_dragon' in troops_dict and troops_dict['stone_dragon'] > 0:
+                                        dragons_data['stone_dragon'] = dragons_data.get('stone_dragon', 0) + 1
                                 except:
                                     pass
                     else:
@@ -359,14 +362,17 @@ def create_overview_tab(filtered_df):
                             dragons_data['great_dragon'] = (pd.to_numeric(player_df['troop_great_dragon'], errors='coerce') > 0).sum()
                         if 'troop_water_dragon' in player_df.columns:
                             dragons_data['water_dragon'] = (pd.to_numeric(player_df['troop_water_dragon'], errors='coerce') > 0).sum()
+                        if 'troop_stone_dragon' in player_df.columns:
+                            dragons_data['stone_dragon'] = (pd.to_numeric(player_df['troop_stone_dragon'], errors='coerce') > 0).sum()
             
             # Dragon image map
             dragon_image_map = {
                 'great_dragon': 'great_dragon.webp',
-                'water_dragon': 'water_dragon.webp'
+                'water_dragon': 'water_dragon.webp',
+                'stone_dragon': 'stone_dragon.webp'
             }
             
-            dragon_names = ['great_dragon', 'water_dragon']
+            dragon_names = ['great_dragon', 'water_dragon', 'stone_dragon']
             
             # Display dragon tiles in a grid
             cols = st.columns(len(dragon_names))
@@ -393,15 +399,21 @@ def create_overview_tab(filtered_df):
             respirator_values = []
             respirator_dates = []
             
+            # Glowing Mandrake
+            mandrake_values = []
+            mandrake_dates = []
+            
             for _, row in filtered_df.iterrows():
                 respirator_count = 0
+                mandrake_count = 0
                 
-                # Check resources dictionary for fangtooth
+                # Check resources dictionary for fangtooth and glowing mandrake
                 if 'resources' in row and isinstance(row['resources'], dict):
-                    # Look for resource_fangtooth or similar
                     for resource_name, resource_value in row['resources'].items():
                         if 'fangtooth' in resource_name.lower():
                             respirator_count += resource_value
+                        if 'glowing_mandrake' in resource_name.lower() or 'glowing mandrake' in resource_name.lower():
+                            mandrake_count += resource_value
                 
                 # Also check raw_player_data for comprehensive format
                 if 'raw_player_data' in row and row['raw_player_data'] is not None:
@@ -409,33 +421,42 @@ def create_overview_tab(filtered_df):
                     # Look for resource_fangtooth column
                     if 'resource_fangtooth' in player_data.columns:
                         respirator_count += player_data['resource_fangtooth'].fillna(0).sum()
+                    # Look for resource_glowing_mandrake column
+                    if 'resource_glowing_mandrake' in player_data.columns:
+                        mandrake_count += player_data['resource_glowing_mandrake'].fillna(0).sum()
                 
                 respirator_values.append(respirator_count)
                 respirator_dates.append(row['date'])
+                mandrake_values.append(mandrake_count)
+                mandrake_dates.append(row['date'])
             
-            # Filter out leading zeros
+            # Filter out leading zeros for fangtooth
             if sum(respirator_values) > 0:
-                # Find first non-zero index
                 first_nonzero_idx = next((i for i, v in enumerate(respirator_values) if v > 0), None)
                 if first_nonzero_idx is not None and first_nonzero_idx > 0:
-                    # Keep only the first zero and everything after first_nonzero_idx
                     respirator_values = [respirator_values[first_nonzero_idx - 1]] + respirator_values[first_nonzero_idx:]
                     respirator_dates = [respirator_dates[first_nonzero_idx - 1]] + respirator_dates[first_nonzero_idx:]
             
-            if sum(respirator_values) > 0:
-                # Calculate daily rate
-                if len(respirator_values) >= 2:
+            # Filter out leading zeros for glowing mandrake
+            if sum(mandrake_values) > 0:
+                first_nonzero_idx = next((i for i, v in enumerate(mandrake_values) if v > 0), None)
+                if first_nonzero_idx is not None and first_nonzero_idx > 0:
+                    mandrake_values = [mandrake_values[first_nonzero_idx - 1]] + mandrake_values[first_nonzero_idx:]
+                    mandrake_dates = [mandrake_dates[first_nonzero_idx - 1]] + mandrake_dates[first_nonzero_idx:]
+            
+            # Calculate daily rate function
+            def calculate_daily_rate_for_values(values, dates):
+                if len(values) >= 2:
                     daily_rates = []
-                    for i in range(len(respirator_values)):
+                    for i in range(len(values)):
                         if i == 0:
                             daily_rates.append(0)
                         else:
-                            current_value = respirator_values[i]
-                            previous_value = respirator_values[i-1]
-                            current_time = respirator_dates[i]
-                            previous_time = respirator_dates[i-1]
+                            current_value = values[i]
+                            previous_value = values[i-1]
+                            current_time = dates[i]
+                            previous_time = dates[i-1]
                             
-                            # Calculate time difference in days
                             time_diff = (current_time - previous_time).total_seconds() / (24 * 3600)
                             
                             if time_diff > 0:
@@ -443,65 +464,88 @@ def create_overview_tab(filtered_df):
                                 daily_rates.append(daily_rate)
                             else:
                                 daily_rates.append(0)
-                    
-                    daily_change = daily_rates[-1] if daily_rates else 0
-                else:
-                    daily_change = 0
-                
+                    return daily_rates[-1] if daily_rates else 0
+                return 0
+            
+            # Display elite items in horizontal grid
+            elite_items_data = []
+            
+            # Fangtooth data
+            if sum(respirator_values) > 0:
+                daily_change = calculate_daily_rate_for_values(respirator_values, respirator_dates)
                 latest_amount = respirator_values[-1]
-                
-                # Calculate average per player
                 latest_players = len(filtered_df.iloc[-1]['raw_player_data']) if 'raw_player_data' in filtered_df.iloc[-1] and filtered_df.iloc[-1]['raw_player_data'] is not None else 0
                 avg_per_player = latest_amount / latest_players if latest_players > 0 else 0
-                
-                # Display elite item tile (compact)
-                # For now, single item - will expand to horizontal grid when more items added
-                # Currently using single column, but structure is ready for horizontal layout
-                elite_cols = st.columns(1)
-                with elite_cols[0]:
-                    # Read image and convert to base64
-                    import base64
-                    image_path = "Images/fangtooth_respirator.webp"
-                    try:
-                        with open(image_path, "rb") as image_file:
-                            encoded_image = base64.b64encode(image_file.read()).decode()
-                            image_html = f'<img src="data:image/webp;base64,{encoded_image}" width="50" style="border-radius: 4px;">'
-                    except:
-                        image_html = ""
-                    
-                    st.markdown(f"""
-                    <style>
-                    .elite-item-tile {{
-                        border: 1px solid #ddd;
-                        border-radius: 8px;
-                        padding: 15px;
-                        margin: 5px 0;
-                        transition: all 0.3s ease;
-                        cursor: pointer;
-                        max-width: 300px;
-                        background-color: #2d2d2d;
-                    }}
-                    .elite-item-tile:hover {{
-                        border-color: #FF6B6B;
-                        box-shadow: 0 4px 8px rgba(255, 107, 107, 0.3);
-                        transform: translateY(-2px);
-                        background-color: rgba(255, 107, 107, 0.05);
-                    }}
-                    </style>
-                    <div class="elite-item-tile">
-                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
-                            {image_html}
-                            <div style="font-size: 14px; font-weight: bold; color: white;">Fangtooth Respirators</div>
+                elite_items_data.append({
+                    'name': 'Fangtooth Respirators',
+                    'image': 'fangtooth_respirator.webp',
+                    'amount': latest_amount,
+                    'daily_change': daily_change,
+                    'avg_per_player': avg_per_player
+                })
+            
+            # Glowing Mandrake data
+            if sum(mandrake_values) > 0:
+                daily_change = calculate_daily_rate_for_values(mandrake_values, mandrake_dates)
+                latest_amount = mandrake_values[-1]
+                latest_players = len(filtered_df.iloc[-1]['raw_player_data']) if 'raw_player_data' in filtered_df.iloc[-1] and filtered_df.iloc[-1]['raw_player_data'] is not None else 0
+                avg_per_player = latest_amount / latest_players if latest_players > 0 else 0
+                elite_items_data.append({
+                    'name': 'Glowing Mandrake',
+                    'image': 'glowing_mandrake.webp',
+                    'amount': latest_amount,
+                    'daily_change': daily_change,
+                    'avg_per_player': avg_per_player
+                })
+            
+            # Display elite item tiles in horizontal grid
+            if elite_items_data:
+                elite_cols = st.columns(len(elite_items_data))
+                for idx, item_data in enumerate(elite_items_data):
+                    with elite_cols[idx]:
+                        # Read image and convert to base64
+                        import base64
+                        image_path = f"Images/{item_data['image']}"
+                        try:
+                            with open(image_path, "rb") as image_file:
+                                encoded_image = base64.b64encode(image_file.read()).decode()
+                                image_html = f'<img src="data:image/webp;base64,{encoded_image}" width="50" style="border-radius: 4px;">'
+                        except:
+                            image_html = ""
+                        
+                        st.markdown(f"""
+                        <style>
+                        .elite-item-tile {{
+                            border: 1px solid #ddd;
+                            border-radius: 8px;
+                            padding: 15px;
+                            margin: 5px 0;
+                            transition: all 0.3s ease;
+                            cursor: pointer;
+                            max-width: 300px;
+                            background-color: #2d2d2d;
+                        }}
+                        .elite-item-tile:hover {{
+                            border-color: #FF6B6B;
+                            box-shadow: 0 4px 8px rgba(255, 107, 107, 0.3);
+                            transform: translateY(-2px);
+                            background-color: rgba(255, 107, 107, 0.05);
+                        }}
+                        </style>
+                        <div class="elite-item-tile">
+                            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                                {image_html}
+                                <div style="font-size: 14px; font-weight: bold; color: white;">{item_data['name']}</div>
+                            </div>
+                            <div style="font-size: 20px; font-weight: bold; margin: 5px 0; color: white;">{int(item_data['amount']):,}</div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 14px; color: white; background-color: {'green' if item_data['daily_change'] >= 0 else 'red'}; padding: 2px 8px; border-radius: 12px;">{int(item_data['daily_change']):,}/day</span>
+                                <span style="background-color: #666; color: white; padding: 2px 8px; border-radius: 12px; font-size: 14px;">
+                                    {int(item_data['avg_per_player']):,}/player
+                                </span>
+                            </div>
                         </div>
-                        <div style="font-size: 20px; font-weight: bold; margin: 5px 0; color: white;">{int(latest_amount):,}</div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 14px; color: white; background-color: {'green' if daily_change >= 0 else 'red'}; padding: 2px 8px; border-radius: 12px;">{int(daily_change):,}/day</span>
-                            <span style="background-color: #666; color: white; padding: 2px 8px; border-radius: 12px; font-size: 14px;">
-                                {int(avg_per_player):,}/player
-                            </span>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        """, unsafe_allow_html=True)
             
             st.markdown("---")
             st.markdown("### 📈 Speedups Overview")

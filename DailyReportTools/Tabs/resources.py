@@ -138,23 +138,27 @@ def create_resources_tab(filtered_df):
             
             st.plotly_chart(fig_resources, config={'displayModeBar': False})
             
-            # Elite Items Section (Fangtooth Respirators)
+            # Elite Items Section (Fangtooth Respirators and Glowing Mandrake)
             st.markdown("---")
             st.markdown("### Elite Items")
             
-            # Look for fangtooth respirators in resources data
+            # Look for fangtooth respirators and glowing mandrake in resources data
             respirator_values = []
             respirator_dates = []
+            mandrake_values = []
+            mandrake_dates = []
             
             for _, row in filtered_df.iterrows():
                 respirator_count = 0
+                mandrake_count = 0
                 
-                # Check resources dictionary for fangtooth
+                # Check resources dictionary for fangtooth and glowing mandrake
                 if 'resources' in row and isinstance(row['resources'], dict):
-                    # Look for resource_fangtooth or similar
                     for resource_name, resource_value in row['resources'].items():
                         if 'fangtooth' in resource_name.lower():
                             respirator_count += resource_value
+                        if 'glowing_mandrake' in resource_name.lower() or 'glowing mandrake' in resource_name.lower():
+                            mandrake_count += resource_value
                 
                 # Also check raw_player_data for comprehensive format
                 if 'raw_player_data' in row and row['raw_player_data'] is not None:
@@ -162,38 +166,49 @@ def create_resources_tab(filtered_df):
                     # Look for resource_fangtooth column
                     if 'resource_fangtooth' in player_data.columns:
                         respirator_count += player_data['resource_fangtooth'].fillna(0).sum()
+                    # Look for resource_glowing_mandrake column
+                    if 'resource_glowing_mandrake' in player_data.columns:
+                        mandrake_count += player_data['resource_glowing_mandrake'].fillna(0).sum()
                 
                 respirator_values.append(respirator_count)
                 respirator_dates.append(row['date'])
+                mandrake_values.append(mandrake_count)
+                mandrake_dates.append(row['date'])
             
-            # Filter out leading zeros, keep only first zero point and actual data
+            # Filter out leading zeros for fangtooth
             if sum(respirator_values) > 0:
-                # Find first non-zero index
                 first_nonzero_idx = next((i for i, v in enumerate(respirator_values) if v > 0), None)
                 if first_nonzero_idx is not None and first_nonzero_idx > 0:
-                    # Keep only the first zero and everything after first_nonzero_idx
                     respirator_values = [respirator_values[first_nonzero_idx - 1]] + respirator_values[first_nonzero_idx:]
                     respirator_dates = [respirator_dates[first_nonzero_idx - 1]] + respirator_dates[first_nonzero_idx:]
             
-            if sum(respirator_values) > 0:
+            # Filter out leading zeros for glowing mandrake
+            if sum(mandrake_values) > 0:
+                first_nonzero_idx = next((i for i, v in enumerate(mandrake_values) if v > 0), None)
+                if first_nonzero_idx is not None and first_nonzero_idx > 0:
+                    mandrake_values = [mandrake_values[first_nonzero_idx - 1]] + mandrake_values[first_nonzero_idx:]
+                    mandrake_dates = [mandrake_dates[first_nonzero_idx - 1]] + mandrake_dates[first_nonzero_idx:]
+            
+            # Function to create elite item chart
+            def create_elite_item_chart(values, dates, name, color, image_file):
                 # Add icon and name inline
                 col1, col2 = st.columns([1, 15])
                 with col1:
-                    image_path = "Images/fangtooth_respirator.webp"
+                    image_path = f"Images/{image_file}"
                     try:
                         st.image(image_path, width=50)
                     except:
-                        st.write("🦷")
+                        st.write("✨")
                 with col2:
-                    st.markdown("### Fangtooth Respirators")
+                    st.markdown(f"### {name}")
                 
                 # Calculate daily rate
-                if len(respirator_values) >= 2:
-                    daily_rates = calculate_daily_rate(respirator_values, respirator_dates)
+                if len(values) >= 2:
+                    daily_rates = calculate_daily_rate(values, dates)
                     
                     # Aggregate by date
                     date_df = pd.DataFrame({
-                        'date': respirator_dates,
+                        'date': dates,
                         'daily_rate': daily_rates
                     })
                     daily_agg = date_df.groupby(date_df['date'].dt.date).agg({
@@ -207,27 +222,27 @@ def create_resources_tab(filtered_df):
                     daily_agg = None
                 
                 # Create combined chart with line and bar
-                fig_respirators = make_subplots(
+                fig = make_subplots(
                     rows=1, cols=2,
                     subplot_titles=["Total Quantity", "Daily Rate"],
                     horizontal_spacing=0.1
                 )
                 
-                fig_respirators.add_trace(
+                fig.add_trace(
                     go.Scatter(
-                        x=respirator_dates,
-                        y=respirator_values,
+                        x=dates,
+                        y=values,
                         mode='lines+markers',
                         name='Total',
-                        line=dict(color='#FF6B6B', width=2),
-                        marker=dict(size=6, color='#FF6B6B'),
-                        hovertemplate='<b>Fangtooth Respirators</b><br>Date: %{x}<br>Quantity: %{y:,.0f}<extra></extra>'
+                        line=dict(color=color, width=2),
+                        marker=dict(size=6, color=color),
+                        hovertemplate=f'<b>{name}</b><br>Date: %{{x}}<br>Quantity: %{{y:,.0f}}<extra></extra>'
                     ),
                     row=1, col=1
                 )
                 
                 if daily_agg is not None:
-                    fig_respirators.add_trace(
+                    fig.add_trace(
                         go.Bar(
                             x=daily_agg['date'],
                             y=daily_agg['daily_rate'],
@@ -238,19 +253,29 @@ def create_resources_tab(filtered_df):
                         row=1, col=2
                     )
                 
-                fig_respirators.update_layout(
+                fig.update_layout(
                     height=350,
                     showlegend=False
                 )
                 
-                fig_respirators.update_xaxes(title_text="Date", row=1, col=1)
-                fig_respirators.update_xaxes(title_text="Date", row=1, col=2)
-                fig_respirators.update_yaxes(title_text="Quantity", row=1, col=1)
-                fig_respirators.update_yaxes(title_text="Daily Change", row=1, col=2)
+                fig.update_xaxes(title_text="Date", row=1, col=1)
+                fig.update_xaxes(title_text="Date", row=1, col=2)
+                fig.update_yaxes(title_text="Quantity", row=1, col=1)
+                fig.update_yaxes(title_text="Daily Change", row=1, col=2)
                 
-                st.plotly_chart(fig_respirators, config={'displayModeBar': False})
+                st.plotly_chart(fig, config={'displayModeBar': False})
+            
+            # Display Fangtooth Respirators chart
+            if sum(respirator_values) > 0:
+                create_elite_item_chart(respirator_values, respirator_dates, "Fangtooth Respirators", "#FF6B6B", "fangtooth_respirator.webp")
             else:
                 st.info("No fangtooth respirators found in the data")
+            
+            # Display Glowing Mandrake chart
+            if sum(mandrake_values) > 0:
+                create_elite_item_chart(mandrake_values, mandrake_dates, "Glowing Mandrake", "#9370DB", "glowing_mandrake.webp")
+            else:
+                st.info("No glowing mandrake found in the data")
             
             # Combined Resources Line Chart
             st.markdown("---")
