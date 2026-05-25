@@ -325,15 +325,7 @@ class S3Automation:
             tar_files = [f for f in files if f['key'].endswith('.tar.gz')]
             print(f"Found {len(tar_files)} tar.gz files")
             
-            # Filter out bad backups (anomalously small files)
-            # Good backups are typically 380-470 MB, bad backups are 2-11 MB
-            # Use 50 MB as a safe threshold
-            MIN_SIZE_THRESHOLD = 50 * 1024 * 1024  # 50 MB
-            tar_files = [f for f in tar_files if f['size'] >= MIN_SIZE_THRESHOLD]
-            filtered_count = len(files) - len(tar_files)
-            if filtered_count > 0:
-                print(f"Filtered out {filtered_count} small files (likely bad backups)")
-            print(f"Found {len(tar_files)} valid tar.gz files after size filter")
+            # Size filter removed - all tar.gz files will now be processed
             
             # Get existing files from GitHub
             existing_files = self.get_existing_github_files()
