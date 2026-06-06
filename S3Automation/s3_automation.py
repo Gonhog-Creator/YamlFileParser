@@ -111,8 +111,25 @@ class S3Automation:
             tar_copy = os.path.join(process_dir, tar_filename)
             shutil.copy(tar_path, tar_copy)
             
+            # Check if file is older than 14 days to determine pruning
+            from datetime import timedelta
+            prune = False
+            if 'backup_' in tar_filename:
+                try:
+                    # Extract date from format: backup_YYYY-MM-DD_HH-MM-SS_csv.tar.gz
+                    date_match = tar_filename.split('backup_')[1].split('_csv.tar.gz')[0]
+                    date_part = date_match.split('_')[0]  # YYYY-MM-DD
+                    file_date = datetime.strptime(date_part, '%Y-%m-%d')
+                    cutoff_date = datetime.now() - timedelta(days=14)
+                    
+                    if file_date < cutoff_date:
+                        prune = True
+                        print(f"File from {file_date.strftime('%Y-%m-%d')} is older than 14 days - enabling pruning")
+                except (ValueError, IndexError) as e:
+                    print(f"Could not parse date from {tar_filename}: {e}, not pruning")
+            
             # Process using PlayerDataAnalyzer (will only find this one file)
-            analyzer = PlayerDataAnalyzer(process_dir)
+            analyzer = PlayerDataAnalyzer(process_dir, prune=prune)
             analyzer.generate_comprehensive_csv()
             
             # Find the generated compressed CSV file

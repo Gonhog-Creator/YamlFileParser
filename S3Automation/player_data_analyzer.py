@@ -19,8 +19,9 @@ from datetime import datetime
 PARSER_VERSION = "1.3"
 
 class PlayerDataAnalyzer:
-    def __init__(self, database_path):
+    def __init__(self, database_path, prune=False):
         self.database_path = database_path
+        self.prune = prune
         # Find all .tar.gz files in the directory
         self.tar_files = sorted([
             os.path.join(database_path, f) 
@@ -294,6 +295,8 @@ class PlayerDataAnalyzer:
     def process_player_data(self, data):
         """Process and consolidate all player data with validation"""
         print("Processing player data...")
+        if self.prune:
+            print("Prune mode enabled - removing detailed data for older files")
         
         if not data.get('player'):
             print("No player data found!")
@@ -382,6 +385,17 @@ class PlayerDataAnalyzer:
             processed_count += 1
             # Start with base player data
             player_data = player.copy()
+            
+            # Remove base player fields if pruning
+            if self.prune:
+                player_fields_to_remove = [
+                    'uuid', 'username', 'account_id', 'created_at',
+                    'pve_power', 'pvp_power', 'race', 'race_variation',
+                    'realm_id', 'tax', 'tutorial_completed', 'version',
+                    'auto_waver_activated', 'scheduler_processing_claimed_at'
+                ]
+                for field in player_fields_to_remove:
+                    player_data.pop(field, None)
             
             # Add premium status from metadata
             metadata = player.get('metadata', '')
@@ -586,85 +600,89 @@ class PlayerDataAnalyzer:
                     coord_str = f"({coordinate_x},{coordinate_y})" if coordinate_x and coordinate_y else ''
                     player_buildings.append(f"{settlement_name}({settlement_level})[{settlement_type}]{coord_str}:[{','.join(settlement_buildings)}]")
             
-            player_data['buildings_metadata'] = '|'.join(player_buildings) if player_buildings else ''
-            player_data['primary_city_coordinates'] = primary_city_coords if primary_city_coords else ''
-            player_data['all_settlement_coordinates'] = '|'.join(all_settlement_coords) if all_settlement_coords else ''
+            if not self.prune:
+                player_data['buildings_metadata'] = '|'.join(player_buildings) if player_buildings else ''
+                player_data['primary_city_coordinates'] = primary_city_coords if primary_city_coords else ''
+                player_data['all_settlement_coordinates'] = '|'.join(all_settlement_coords) if all_settlement_coords else ''
             
             # Process skins
-            equipped_skins = equipped_skins_by_player.get(player_id, [])
-            unlocked_skins = unlocked_skins_by_player.get(player_id, [])
-            
-            # Create equipped skins metadata
-            equipped_skin_data = []
-            for skin in equipped_skins:
-                skin_type = skin.get('definition_id', '')
-                skin_category = skin.get('category', '')
-                settlement_id = skin.get('settlement_id', '')
-                if settlement_id:  # Building skin
-                    equipped_skin_data.append(f"{skin_type}({skin_category})")
-                else:  # Avatar skin
-                    equipped_skin_data.append(f"{skin_type}({skin_category})")
-            
-            # Create unlocked skins metadata
-            unlocked_skin_data = []
-            for skin in unlocked_skins:
-                skin_type = skin.get('definition_id', '')
-                unlocked_at = skin.get('unlocked_at', '')
-                unlocked_skin_data.append(f"{skin_type}@{unlocked_at}")
-            
-            player_data['equipped_skins'] = '|'.join(equipped_skin_data) if equipped_skin_data else ''
-            player_data['unlocked_skins'] = '|'.join(unlocked_skin_data) if unlocked_skin_data else ''
-            player_data['total_skins_equipped'] = len(equipped_skins)
-            player_data['total_skins_unlocked'] = len(unlocked_skins)
+            if not self.prune:
+                equipped_skins = equipped_skins_by_player.get(player_id, [])
+                unlocked_skins = unlocked_skins_by_player.get(player_id, [])
+                
+                # Create equipped skins metadata
+                equipped_skin_data = []
+                for skin in equipped_skins:
+                    skin_type = skin.get('definition_id', '')
+                    skin_category = skin.get('category', '')
+                    settlement_id = skin.get('settlement_id', '')
+                    if settlement_id:  # Building skin
+                        equipped_skin_data.append(f"{skin_type}({skin_category})")
+                    else:  # Avatar skin
+                        equipped_skin_data.append(f"{skin_type}({skin_category})")
+                
+                # Create unlocked skins metadata
+                unlocked_skin_data = []
+                for skin in unlocked_skins:
+                    skin_type = skin.get('definition_id', '')
+                    unlocked_at = skin.get('unlocked_at', '')
+                    unlocked_skin_data.append(f"{skin_type}@{unlocked_at}")
+                
+                player_data['equipped_skins'] = '|'.join(equipped_skin_data) if equipped_skin_data else ''
+                player_data['unlocked_skins'] = '|'.join(unlocked_skin_data) if unlocked_skin_data else ''
+                player_data['total_skins_equipped'] = len(equipped_skins)
+                player_data['total_skins_unlocked'] = len(unlocked_skins)
             
             # Process research
-            research_items = research_by_player.get(player_id, [])
-            research_levels = []
-            research_types = set()
-            total_research_level = 0
-            
-            for research in research_items:
-                research_type = research.get('definition_id', '')
-                research_level = int(research.get('level', 0))
-                research_status = research.get('status', '')
+            if not self.prune:
+                research_items = research_by_player.get(player_id, [])
+                research_levels = []
+                research_types = set()
+                total_research_level = 0
                 
-                research_levels.append(f"{research_type}:{research_level}")
-                research_types.add(research_type)
-                total_research_level += research_level
-            
-            player_data['research_metadata'] = '|'.join(research_levels) if research_levels else ''
-            player_data['total_research_level'] = total_research_level
-            player_data['completed_research_count'] = len(research_items)
-            player_data['research_types'] = '|'.join(sorted(research_types)) if research_types else ''
+                for research in research_items:
+                    research_type = research.get('definition_id', '')
+                    research_level = int(research.get('level', 0))
+                    research_status = research.get('status', '')
+                    
+                    research_levels.append(f"{research_type}:{research_level}")
+                    research_types.add(research_type)
+                    total_research_level += research_level
+                
+                player_data['research_metadata'] = '|'.join(research_levels) if research_levels else ''
+                player_data['total_research_level'] = total_research_level
+                player_data['completed_research_count'] = len(research_items)
+                player_data['research_types'] = '|'.join(sorted(research_types)) if research_types else ''
             
             # Process quests
-            quest_items = quests_by_player.get(player_id, [])
-            completed_quests = []
-            in_progress_quests = []
-            quest_types = set()
-            total_quest_progress = 0.0
-            
-            for quest in quest_items:
-                quest_type = quest.get('definition_id', '')
-                quest_status = quest.get('status', '')
-                quest_progress = float(quest.get('progress', 0))
-                quest_level = quest.get('level', '')
-                quest_claimed = quest.get('claimed', '')
+            if not self.prune:
+                quest_items = quests_by_player.get(player_id, [])
+                completed_quests = []
+                in_progress_quests = []
+                quest_types = set()
+                total_quest_progress = 0.0
                 
-                quest_types.add(quest_type)
-                total_quest_progress += quest_progress
+                for quest in quest_items:
+                    quest_type = quest.get('definition_id', '')
+                    quest_status = quest.get('status', '')
+                    quest_progress = float(quest.get('progress', 0))
+                    quest_level = quest.get('level', '')
+                    quest_claimed = quest.get('claimed', '')
+                    
+                    quest_types.add(quest_type)
+                    total_quest_progress += quest_progress
+                    
+                    quest_info = f"{quest_type}:{quest_level}:{quest_status}"
+                    if quest_status == 'completed':
+                        completed_quests.append(quest_info)
+                    elif quest_status == 'in_progress':
+                        in_progress_quests.append(quest_info)
                 
-                quest_info = f"{quest_type}:{quest_level}:{quest_status}"
-                if quest_status == 'completed':
-                    completed_quests.append(quest_info)
-                elif quest_status == 'in_progress':
-                    in_progress_quests.append(quest_info)
-            
-            player_data['quest_metadata'] = '|'.join(completed_quests + in_progress_quests) if (completed_quests + in_progress_quests) else ''
-            player_data['completed_quests_count'] = len(completed_quests)
-            player_data['in_progress_quests_count'] = len(in_progress_quests)
-            player_data['total_quests_count'] = len(quest_items)
-            player_data['quest_types'] = '|'.join(sorted(quest_types)) if quest_types else ''
+                player_data['quest_metadata'] = '|'.join(completed_quests + in_progress_quests) if (completed_quests + in_progress_quests) else ''
+                player_data['completed_quests_count'] = len(completed_quests)
+                player_data['in_progress_quests_count'] = len(in_progress_quests)
+                player_data['total_quests_count'] = len(quest_items)
+                player_data['quest_types'] = '|'.join(sorted(quest_types)) if quest_types else ''
             
             # Process purchases
             shop_item_purchases = shop_item_purchases_by_player.get(player_id, [])
@@ -695,52 +713,54 @@ class PlayerDataAnalyzer:
             player_data['total_purchases'] = len(shop_purchases_list) + len(store_purchases_list)
             
             # Process alliance data
-            alliance_memberships = alliance_members.get(player_id, [])
-            if alliance_memberships:
-                # Get the first alliance membership
-                membership = alliance_memberships[0]
-                alliance_id = membership.get('alliance_id', '')
-                if alliance_id and alliance_id in alliances:
-                    alliance = alliances[alliance_id]
-                    player_data['alliance_name'] = alliance.get('name', '')
-                    player_data['alliance_tag'] = alliance.get('tag', '')
+            if not self.prune:
+                alliance_memberships = alliance_members.get(player_id, [])
+                if alliance_memberships:
+                    # Get the first alliance membership
+                    membership = alliance_memberships[0]
+                    alliance_id = membership.get('alliance_id', '')
+                    if alliance_id and alliance_id in alliances:
+                        alliance = alliances[alliance_id]
+                        player_data['alliance_name'] = alliance.get('name', '')
+                        player_data['alliance_tag'] = alliance.get('tag', '')
+                    else:
+                        player_data['alliance_name'] = ''
+                        player_data['alliance_tag'] = ''
                 else:
                     player_data['alliance_name'] = ''
                     player_data['alliance_tag'] = ''
-            else:
-                player_data['alliance_name'] = ''
-                player_data['alliance_tag'] = ''
             
             # Process effects
-            effects = effects_by_player.get(player_id, [])
-            active_effects = []
-            permanent_effects = []
-            effect_types = set()
-            total_effects = len(effects)
-            
-            for effect in effects:
-                effect_source = effect.get('source', '')
-                effect_type = effect.get('type', '')
-                effect_level = effect.get('level', '')
-                effect_is_permanent = effect.get('is_permanent', '')
-                effect_start_at = effect.get('start_at', '')
-                effect_duration = effect.get('duration', '')
+            if not self.prune:
+                effects = effects_by_player.get(player_id, [])
+                active_effects = []
+                permanent_effects = []
+                effect_types = set()
+                total_effects = len(effects)
                 
-                effect_types.add(effect_type)
+                for effect in effects:
+                    effect_source = effect.get('source', '')
+                    effect_type = effect.get('type', '')
+                    effect_level = effect.get('level', '')
+                    effect_is_permanent = effect.get('is_permanent', '')
+                    effect_start_at = effect.get('start_at', '')
+                    effect_duration = effect.get('duration', '')
+                    
+                    effect_types.add(effect_type)
+                    
+                    # Include duration in effect info: source:type:level:duration
+                    effect_info = f"{effect_source}:{effect_type}:{effect_level}:{effect_duration}"
+                    if effect_is_permanent == 't':
+                        permanent_effects.append(effect_info)
+                    else:
+                        active_effects.append(effect_info)
                 
-                # Include duration in effect info: source:type:level:duration
-                effect_info = f"{effect_source}:{effect_type}:{effect_level}:{effect_duration}"
-                if effect_is_permanent == 't':
-                    permanent_effects.append(effect_info)
-                else:
-                    active_effects.append(effect_info)
-            
-            player_data['total_effects'] = total_effects
-            player_data['active_effects'] = '|'.join(active_effects) if active_effects else ''
-            player_data['permanent_effects'] = '|'.join(permanent_effects) if permanent_effects else ''
-            player_data['effect_types'] = '|'.join(sorted(effect_types)) if effect_types else ''
-            player_data['active_effects_count'] = len(active_effects)
-            player_data['permanent_effects_count'] = len(permanent_effects)
+                player_data['total_effects'] = total_effects
+                player_data['active_effects'] = '|'.join(active_effects) if active_effects else ''
+                player_data['permanent_effects'] = '|'.join(permanent_effects) if permanent_effects else ''
+                player_data['effect_types'] = '|'.join(sorted(effect_types)) if effect_types else ''
+                player_data['active_effects_count'] = len(active_effects)
+                player_data['permanent_effects_count'] = len(permanent_effects)
             
             comprehensive_data.append(player_data)
         
@@ -860,7 +880,7 @@ class PlayerDataAnalyzer:
                     shutil.copy(tar_file, temp_tar)
                     
                     # Process with analyzer
-                    temp_analyzer = PlayerDataAnalyzer(temp_dir)
+                    temp_analyzer = PlayerDataAnalyzer(temp_dir, prune=self.prune)
                     temp_analyzer.generate_comprehensive_csv()
                     
                     # Move generated CSV to replace old one
