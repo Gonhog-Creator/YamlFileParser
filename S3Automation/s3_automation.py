@@ -328,10 +328,12 @@ class S3Automation:
             print(f"Cleaned up temporary directory: {self.temp_dir}")
     
     def reprocess_old_files_with_pruning(self):
-        """Re-process existing GitHub files older than 14 days with pruning enabled"""
+        """Prune existing GitHub files older than 14 days directly without tar files"""
         from datetime import timedelta
+        import gzip
+        import csv
         
-        print("\n=== Re-processing old files with pruning ===")
+        print("\n=== Pruning old files ===")
         
         # Get existing files from GitHub
         existing_files = self.get_existing_github_files()
@@ -356,67 +358,112 @@ class S3Automation:
                 except (ValueError, IndexError):
                     pass
         
-        print(f"Found {len(old_files)} files older than 14 days to re-process with pruning")
+        print(f"Found {len(old_files)} files older than 14 days to prune")
         
         if not old_files:
-            print("No old files to re-process")
+            print("No old files to prune")
             return 0
         
-        # List S3 files to find matching tar files
-        s3_files = self.list_s3_files()
-        tar_files = {f['key']: f for f in s3_files if f['key'].endswith('.tar.gz')}
+        # Columns to remove
+        columns_to_remove = {
+            'uuid', 'username', 'account_id', 'created_at', 'pve_power', 'pvp_power',
+            'race', 'race_variation', 'realm_id', 'tax', 'tutorial_completed', 'version',
+            'auto_waver_activated', 'scheduler_processing_claimed_at',
+            'total_effects', 'active_effects', 'permanent_effects', 'effect_types',
+            'active_effects_count', 'permanent_effects_count', 'alliance_name', 'alliance_tag',
+            'quest_metadata', 'completed_quests_count', 'in_progress_quests_count',
+            'total_quests_count', 'quest_types', 'research_metadata', 'total_research_level',
+            'completed_research_count', 'research_types', 'equipped_skins', 'unlocked_skins',
+            'total_skins_equipped', 'total_skins_unlocked', 'buildings_metadata',
+            'primary_city_coordinates', 'all_settlement_coordinates'
+        }
         
         processed_count = 0
         failed_count = 0
         
         for file_path, file_date in old_files:
-            print(f"\nProcessing old file: {file_path} (from {file_date.strftime('%Y-%m-%d')})")
+            print(f"\nPruning {file_path} (from {file_date.strftime('%Y-%m-%d')})")
             
-            # Extract timestamp from CSV filename to find matching tar file
-            filename = file_path.split('/')[-1]
-            # Remove .gz extension
-            if filename.endswith('.gz'):
-                filename = filename[:-3]
-            
-            # Extract timestamp: 2026-04-22_160231 from comprehensive_player_data_2026-04-22_160231.csv
             try:
-                timestamp = filename.replace('comprehensive_player_data_', '').replace('.csv', '')
-                # Convert to tar filename format: backup_2026-04-22_16-02-31_csv.tar.gz
-                date_part, time_part = timestamp.split('_')
-                time_formatted = f"{time_part[:2]}-{time_part[2:4]}-{time_part[4:6]}"
-                tar_filename = f"backup_{date_part}_{time_formatted}_csv.tar.gz"
-                
-                if tar_filename in tar_files:
-                    # Download and process with pruning
-                    tar_path = os.path.join(self.temp_dir, tar_filename)
-                    if self.download_file(tar_filename, tar_path):
-                        csv_file = self.process_tar_file(tar_path)
-                        if csv_file:
-                            # Push to GitHub (will overwrite existing)
-                            if self.push_to_github(csv_file):
-                                processed_count += 1
-                                print(f"✓ Successfully re-processed and updated {file_path}")
-                            else:
-                                print(f"✗ Failed to push {file_path}")
-                                failed_count += 1
-                        else:
-                            print(f"✗ Failed to process {tar_filename}")
-                            failed_count += 1
-                    else:
-                        print(f"✗ Failed to download {tar_filename}")
-                        failed_count += 1
-                else:
-                    print(f"✗ Could not find matching tar file: {tar_filename}")
+                # Download CSV from GitHub
+                local_csv = self.download_github_file(file_path)
+                if not local_csv:
+                    print(f"✗ Failed to download {file_path}")
                     failed_count += 1
+                    continue
+                
+                # Read and prune CSV
+                pruned_data = []
+                with gzip.open(local_csv, 'rt', encoding='utf-8') as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        # Remove unwanted columns
+                        pruned_row = {k: v for k, v in row.items() if k not in columns_to_remove}
+                        pruned_data.append(pruned_row)
+                
+                # Write pruned CSV
+                with gzip.open(local_csv, 'wt', newline='', encoding='utf-8') as f:
+                    if pruned_data:
+                        fieldnames = sorted(pruned_data[0].keys())
+                        writer = csv.DictWriter(f, fieldnames=fieldnames)
+                        writer.writeheader()
+                        writer.writerows(pruned_data)
+                
+                # Upload pruned CSV back to GitHub
+                if self.push_to_github(local_csv):
+                    processed_count += 1
+                    print(f"✓ Successfully pruned and updated {file_path}")
+                else:
+                    print(f"✗ Failed to upload {file_path}")
+                    failed_count += 1
+                
+                # Clean up local file
+                os.remove(local_csv)
+                
             except Exception as e:
-                print(f"✗ Error processing {file_path}: {e}")
+                print(f"✗ Error pruning {file_path}: {e}")
                 failed_count += 1
         
-        print(f"\n=== Re-processing summary ===")
+        print(f"\n=== Pruning summary ===")
         print(f"Processed: {processed_count} files")
         print(f"Failed: {failed_count} files")
         
         return processed_count
+    
+    def download_github_file(self, file_path):
+        """Download a file from GitHub repository"""
+        if not self.github_token or not self.github_owner or not self.github_repo:
+            print("GitHub credentials not configured. Cannot download file.")
+            return None
+        
+        try:
+            import requests
+            import base64
+            
+            api_url = f"https://api.github.com/repos/{self.github_owner}/{self.github_repo}/contents/{file_path}"
+            headers = {
+                'Authorization': f'token {self.github_token}',
+                'Content-Type': 'application/json'
+            }
+            
+            response = requests.get(api_url, headers=headers)
+            if response.status_code != 200:
+                print(f"Error getting file info: {response.status_code}")
+                return None
+            
+            file_data = response.json()
+            content_b64 = file_data['content']
+            content = base64.b64decode(content_b64)
+            
+            # Save to temp file
+            local_path = os.path.join(self.temp_dir, os.path.basename(file_path))
+            with open(local_path, 'wb') as f:
+                f.write(content)
+            
+            return local_path
+        except Exception as e:
+            print(f"Error downloading file: {e}")
+            return None
     
     def run(self, force=False, prune_old=False):
         """Main automation loop"""
