@@ -6,15 +6,20 @@ enableXsrfProtection = false
 headless = true
 port = 8501
 enableWebsocketCompression = false
+maxMessageSize = 200
 
 [browser]
 gatherUsageStats = false
 serverAddress = "localhost"
 serverPort = 8501
 
+[client]
+maxUploadSize = 200
+maxMessageSize = 200
 
 [runner]
 magicEnabled = true
+maxMemoryUsage = 2000000000
 
 [logger]
 level = "info"

@@ -465,14 +465,12 @@ class CacheManager:
         if 'account_id' not in player_df.columns:
             return player_lookup
         
-        # Build lookup dictionary
-        for _, player in player_df.iterrows():
+        # Build lookup dictionary using to_dict('records') for better performance
+        player_records = player_df.to_dict('records')
+        for player in player_records:
             account_id = player['account_id']
-            # Convert to dict and fill NaN values with 0
-            player_dict = player.to_dict()
-            for key, value in player_dict.items():
-                if pd.isna(value):
-                    player_dict[key] = 0
+            # Fill NaN values with 0
+            player_dict = {k: (0 if pd.isna(v) else v) for k, v in player.items()}
             player_lookup[account_id] = player_dict
         
         return player_lookup

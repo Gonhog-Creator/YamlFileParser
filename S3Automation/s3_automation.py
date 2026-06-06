@@ -327,7 +327,98 @@ class S3Automation:
             shutil.rmtree(self.temp_dir)
             print(f"Cleaned up temporary directory: {self.temp_dir}")
     
-    def run(self, force=False):
+    def reprocess_old_files_with_pruning(self):
+        """Re-process existing GitHub files older than 14 days with pruning enabled"""
+        from datetime import timedelta
+        
+        print("\n=== Re-processing old files with pruning ===")
+        
+        # Get existing files from GitHub
+        existing_files = self.get_existing_github_files()
+        print(f"Found {len(existing_files)} existing CSV files in repository")
+        
+        # Filter for files older than 14 days
+        cutoff_date = datetime.now() - timedelta(days=14)
+        old_files = []
+        
+        for file_path in existing_files:
+            # Extract date from filename
+            # Format: month/filename.csv.gz or filename.csv.gz
+            filename = file_path.split('/')[-1]
+            if 'comprehensive_player_data_' in filename:
+                # Extract date part: 2026-04-22 from comprehensive_player_data_2026-04-22_160231.csv.gz
+                try:
+                    date_part = filename.replace('comprehensive_player_data_', '').split('_')[0]
+                    file_date = datetime.strptime(date_part, '%Y-%m-%d')
+                    
+                    if file_date < cutoff_date:
+                        old_files.append((file_path, file_date))
+                except (ValueError, IndexError):
+                    pass
+        
+        print(f"Found {len(old_files)} files older than 14 days to re-process with pruning")
+        
+        if not old_files:
+            print("No old files to re-process")
+            return 0
+        
+        # List S3 files to find matching tar files
+        s3_files = self.list_s3_files()
+        tar_files = {f['key']: f for f in s3_files if f['key'].endswith('.tar.gz')}
+        
+        processed_count = 0
+        failed_count = 0
+        
+        for file_path, file_date in old_files:
+            print(f"\nProcessing old file: {file_path} (from {file_date.strftime('%Y-%m-%d')})")
+            
+            # Extract timestamp from CSV filename to find matching tar file
+            filename = file_path.split('/')[-1]
+            # Remove .gz extension
+            if filename.endswith('.gz'):
+                filename = filename[:-3]
+            
+            # Extract timestamp: 2026-04-22_160231 from comprehensive_player_data_2026-04-22_160231.csv
+            try:
+                timestamp = filename.replace('comprehensive_player_data_', '').replace('.csv', '')
+                # Convert to tar filename format: backup_2026-04-22_16-02-31_csv.tar.gz
+                date_part, time_part = timestamp.split('_')
+                time_formatted = f"{time_part[:2]}-{time_part[2:4]}-{time_part[4:6]}"
+                tar_filename = f"backup_{date_part}_{time_formatted}_csv.tar.gz"
+                
+                if tar_filename in tar_files:
+                    # Download and process with pruning
+                    tar_path = os.path.join(self.temp_dir, tar_filename)
+                    if self.download_file(tar_filename, tar_path):
+                        csv_file = self.process_tar_file(tar_path)
+                        if csv_file:
+                            # Push to GitHub (will overwrite existing)
+                            if self.push_to_github(csv_file):
+                                processed_count += 1
+                                print(f"✓ Successfully re-processed and updated {file_path}")
+                            else:
+                                print(f"✗ Failed to push {file_path}")
+                                failed_count += 1
+                        else:
+                            print(f"✗ Failed to process {tar_filename}")
+                            failed_count += 1
+                    else:
+                        print(f"✗ Failed to download {tar_filename}")
+                        failed_count += 1
+                else:
+                    print(f"✗ Could not find matching tar file: {tar_filename}")
+                    failed_count += 1
+            except Exception as e:
+                print(f"✗ Error processing {file_path}: {e}")
+                failed_count += 1
+        
+        print(f"\n=== Re-processing summary ===")
+        print(f"Processed: {processed_count} files")
+        print(f"Failed: {failed_count} files")
+        
+        return processed_count
+    
+    def run(self, force=False, prune_old=False):
         """Main automation loop"""
         try:
             print(f"Starting S3 automation at {datetime.now().isoformat()}")
@@ -341,8 +432,6 @@ class S3Automation:
             # Filter for tar.gz files
             tar_files = [f for f in files if f['key'].endswith('.tar.gz')]
             print(f"Found {len(tar_files)} tar.gz files")
-            
-            # Size filter removed - all tar.gz files will now be processed
             
             # Get existing files from GitHub
             existing_files = self.get_existing_github_files()
@@ -415,6 +504,10 @@ class S3Automation:
                 print(f"Skipped (already exist): {skipped_count} files")
             else:
                 print("No tar.gz files found in S3 bucket")
+            
+            # Always run pruning for old files after normal processing
+            print("\n=== Running pruning for old files ===")
+            self.reprocess_old_files_with_pruning()
             
         finally:
             self.cleanup()

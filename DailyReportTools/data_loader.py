@@ -193,6 +193,7 @@ def parse_comprehensive_csv_from_string(content, filename):
         # Silently skip parsing errors to avoid sidebar clutter
         return None
 
+@st.cache_data(ttl=3600, max_entries=50)
 def parse_comprehensive_csv(file_path):
     """Parse the new comprehensive_player_data.csv format"""
     try:
