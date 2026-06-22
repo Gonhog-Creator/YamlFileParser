@@ -323,7 +323,15 @@ def create_speedups_tab(filtered_df):
                         continue
                     
                     # Find matching player in previous data
-                    previous_player = previous_player_df[previous_player_df['username'] == username]
+                    # Try username first, then uuid, then account_id
+                    if 'username' in previous_player_df.columns:
+                        previous_player = previous_player_df[previous_player_df['username'] == username]
+                    elif 'uuid' in previous_player_df.columns:
+                        previous_player = previous_player_df[previous_player_df['uuid'] == username]
+                    elif 'account_id' in previous_player_df.columns:
+                        previous_player = previous_player_df[previous_player_df['account_id'] == username]
+                    else:
+                        previous_player = pd.DataFrame()
                     
                     if previous_player.empty:
                         continue

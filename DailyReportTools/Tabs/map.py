@@ -143,7 +143,7 @@ def create_map_tab(filtered_df):
         if cities:
             city_x = [s['x'] for s in cities]
             city_y = [s['y'] for s in cities]
-            city_names = [f"{s['name']}<br>Player: {s['username']}" for s in cities]
+            city_names = [f"{s['name']}<br>Player: {s.get('username', s.get('uuid', 'Unknown'))}" for s in cities]
             
             fig.add_trace(go.Scatter(
                 x=city_x,
@@ -174,7 +174,7 @@ def create_map_tab(filtered_df):
             if subtype_outposts:
                 outpost_x = [s['x'] for s in subtype_outposts]
                 outpost_y = [s['y'] for s in subtype_outposts]
-                outpost_names = [f"{s['name']}<br>Player: {s['username']}" for s in subtype_outposts]
+                outpost_names = [f"{s['name']}<br>Player: {s.get('username', s.get('uuid', 'Unknown'))}" for s in subtype_outposts]
                 
                 # Use subtype for display name (capitalize and replace underscores)
                 display_name = subtype.replace('_', ' ').title()
@@ -255,11 +255,11 @@ def render_settlement_search(settlements):
     search_username = st.text_input("Search by username (partial match)")
     
     if search_username:
-        search_results = [s for s in settlements if search_username.lower() in s['username'].lower()]
+        search_results = [s for s in settlements if search_username.lower() in s.get('username', s.get('uuid', '')).lower()]
         if search_results:
             st.markdown(f"Found {len(search_results)} settlement(s) for players matching '{search_username}':")
             for result in search_results:
-                st.write(f"- **{result['username']}**: {result['name']} ({result['type'].title()}) at coordinates ({result['x']}, {result['y']})")
+                st.write(f"- **{result.get('username', result.get('uuid', 'Unknown'))}**: {result['name']} ({result['type'].title()}) at coordinates ({result['x']}, {result['y']})")
         else:
             st.warning(f"No settlements found for username matching '{search_username}'")
         st.markdown("---")

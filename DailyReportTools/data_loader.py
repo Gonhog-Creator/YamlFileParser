@@ -10,6 +10,132 @@ from io import StringIO
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from utils import calculate_daily_rate
 
+def backfill_user_ids(df, user_id_mapping):
+    """Backfill missing user ID fields using user_email as key"""
+    if 'user_email' not in df.columns:
+        return df
+    
+    # Get the mapping dictionaries safely
+    username_mapping = user_id_mapping.get('username', {})
+    account_id_mapping = user_id_mapping.get('account_id', {})
+    uuid_mapping = user_id_mapping.get('uuid', {})
+    
+    # Backfill username
+    try:
+        if 'username' not in df.columns:
+            df['username'] = df['user_email'].map(username_mapping)
+        elif not df['username'].isna().all():
+            # Column exists but has some values, backfill only NaN values
+            df['username'] = df['username'].fillna(df['user_email'].map(username_mapping))
+    except Exception:
+        pass
+    
+    # Backfill account_id
+    try:
+        if 'account_id' not in df.columns:
+            df['account_id'] = df['user_email'].map(account_id_mapping)
+        elif not df['account_id'].isna().all():
+            df['account_id'] = df['account_id'].fillna(df['user_email'].map(account_id_mapping))
+    except Exception:
+        pass
+    
+    # Backfill uuid
+    try:
+        if 'uuid' not in df.columns:
+            df['uuid'] = df['user_email'].map(uuid_mapping)
+        elif not df['uuid'].isna().all():
+            df['uuid'] = df['uuid'].fillna(df['user_email'].map(uuid_mapping))
+    except Exception:
+        pass
+    
+    return df
+
+def build_user_id_mapping_from_latest(latest_df):
+    """Build user ID mapping from latest data using user_email as key"""
+    if 'user_email' not in latest_df.columns:
+        return {}
+    
+    mapping = {
+        'username': {},
+        'account_id': {},
+        'uuid': {}
+    }
+    
+    # Track duplicates for warning
+    uuid_duplicates = {}
+    
+    # Build mapping from user_email to other IDs
+    for _, row in latest_df.iterrows():
+        email = row.get('user_email')
+        if pd.notna(email) and email:
+            if 'username' in row and pd.notna(row['username']):
+                mapping['username'][email] = row['username']
+            if 'account_id' in row and pd.notna(row['account_id']):
+                mapping['account_id'][email] = row['account_id']
+            if 'uuid' in row and pd.notna(row['uuid']):
+                uuid_val = row['uuid']
+                # Check for duplicate UUIDs
+                if uuid_val in uuid_duplicates:
+                    uuid_duplicates[uuid_val].append(email)
+                else:
+                    uuid_duplicates[uuid_val] = [email]
+                mapping['uuid'][email] = uuid_val
+    
+    # Warn about duplicate UUIDs
+    for uuid_val, emails in uuid_duplicates.items():
+        if len(emails) > 1:
+            print(f"Warning: UUID {uuid_val} is shared by {len(emails)} emails: {emails[:3]}...")
+    
+    return mapping
+
+def get_user_id_mapping_from_github(github_token, owner, repo):
+    """Download only the latest file from 06.2026 folder to build user ID mapping"""
+    try:
+        import requests
+        import re
+        import gzip
+        from io import StringIO
+        
+        headers = {
+            'Authorization': f'token {github_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
+        # Get files from 06.2026 directory
+        api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/06.2026"
+        response = requests.get(api_url, headers=headers)
+        
+        if response.status_code != 200:
+            return {}
+        
+        files = response.json()
+        csv_files = [f for f in files if f.get('name', '').endswith('.csv.gz') and f.get('type') == 'file']
+        
+        if not csv_files:
+            return {}
+        
+        # Find the latest file by filename (format: comprehensive_player_data_YYYY-MM-DD_HHMMSS.csv.gz)
+        csv_files.sort(key=lambda x: x['name'], reverse=True)
+        latest_file = csv_files[0]
+        
+        # Download the latest file
+        download_url = latest_file['download_url']
+        response = requests.get(download_url, headers=headers)
+        
+        if response.status_code != 200:
+            return {}
+        
+        # Decompress and parse
+        content = gzip.decompress(response.content).decode('utf-8')
+        df = pd.read_csv(StringIO(content))
+        
+        # Build mapping
+        return build_user_id_mapping_from_latest(df)
+        
+    except Exception as e:
+        print(f"Error getting user ID mapping from GitHub: {e}")
+        return {}
+
 def parse_comprehensive_csv_from_string(content, filename):
     """Parse comprehensive CSV from string content (for GitHub loading)"""
     try:
@@ -139,9 +265,9 @@ def parse_comprehensive_csv_from_string(content, filename):
             
             # Parse quests and research data
             quests_data = {
-                'completed_quests': df['completed_quests_count'].fillna(0).sum(),
-                'completed_research': df['completed_research_count'].fillna(0).sum(),
-                'in_progress_quests': df['in_progress_quests_count'].fillna(0).sum()
+                'completed_quests': df['completed_quests_count'].fillna(0).sum() if 'completed_quests_count' in df.columns else 0,
+                'completed_research': df['completed_research_count'].fillna(0).sum() if 'completed_research_count' in df.columns else 0,
+                'in_progress_quests': df['in_progress_quests_count'].fillna(0).sum() if 'in_progress_quests_count' in df.columns else 0
             }
             
             # Calculate ceasefire protection data - always initialize as empty dict
@@ -325,9 +451,9 @@ def parse_comprehensive_csv(file_path):
             
             # Parse quests and research data
             quests_data = {
-                'completed_quests': df['completed_quests_count'].fillna(0).sum(),
-                'completed_research': df['completed_research_count'].fillna(0).sum(),
-                'in_progress_quests': df['in_progress_quests_count'].fillna(0).sum()
+                'completed_quests': df['completed_quests_count'].fillna(0).sum() if 'completed_quests_count' in df.columns else 0,
+                'completed_research': df['completed_research_count'].fillna(0).sum() if 'completed_research_count' in df.columns else 0,
+                'in_progress_quests': df['in_progress_quests_count'].fillna(0).sum() if 'in_progress_quests_count' in df.columns else 0
             }
             
             # Calculate ceasefire protection data - always initialize as empty dict
@@ -630,7 +756,20 @@ def load_csv_files_from_github():
                         
                         # Check if file is compressed
                         if filename.endswith('.gz'):
-                            csv_content = StringIO(gzip.decompress(csv_response.content).decode('utf-8'))
+                            try:
+                                # Check if file is actually gzipped by examining magic number
+                                if csv_response.content[:2] == b'\x1f\x8b':
+                                    # Proper gzip file - decompress it
+                                    csv_content = StringIO(gzip.decompress(csv_response.content).decode('utf-8'))
+                                else:
+                                    # Not actually gzipped despite .gz extension - read as plain text
+                                    csv_content = StringIO(csv_response.content.decode('utf-8'))
+                            except Exception as decompress_error:
+                                # If decompression fails, try as plain text
+                                try:
+                                    csv_content = StringIO(csv_response.content.decode('utf-8'))
+                                except Exception as decode_error:
+                                    return None, filename, f"Decompression/decode error: {decompress_error}", bytes_downloaded, download_time, 0
                         else:
                             csv_content = StringIO(csv_response.text)
                         
@@ -702,6 +841,48 @@ def load_csv_files_from_github():
     
     # Sort by date
     all_data.sort(key=lambda x: x['date'])
+    
+    # Backfill missing user IDs from latest GitHub file (06.2026 folder)
+    try:
+        # Get GitHub credentials
+        github_token = None
+        csv_repo_url = None
+        
+        if hasattr(st, 'secrets'):
+            all_secrets = dict(st.secrets)
+            
+            if "github_token" in all_secrets:
+                github_token = st.secrets["github_token"]
+            if "csv_repo_url" in all_secrets:
+                csv_repo_url = st.secrets["csv_repo_url"]
+            
+            if not github_token and "admin_users" in all_secrets:
+                admin_users = dict(st.secrets["admin_users"])
+                if "github_token" in admin_users:
+                    github_token = admin_users["github_token"]
+                if "csv_repo_url" in admin_users:
+                    csv_repo_url = admin_users["csv_repo_url"]
+        
+        if github_token and csv_repo_url:
+            # Extract owner and repo from URL
+            url_parts = csv_repo_url.replace("https://github.com/", "").split("/")
+            if len(url_parts) >= 2:
+                owner, repo = url_parts[0], url_parts[1]
+                
+                # Get user ID mapping from latest file in 06.2026
+                user_id_mapping = get_user_id_mapping_from_github(github_token, owner, repo)
+                
+                if user_id_mapping and any(user_id_mapping.values()):
+                    # Backfill missing user IDs in all files
+                    for data in all_data:
+                        data_df = pd.DataFrame([data])
+                        backfilled_df = backfill_user_ids(data_df, user_id_mapping)
+                        # Update the data dict with backfilled values
+                        for col in ['username', 'account_id', 'uuid']:
+                            if col in backfilled_df.columns:
+                                data[col] = backfilled_df[col].iloc[0]
+    except Exception as e:
+        print(f"Error during user ID backfill: {e}")
     
     # Remove raw_player_data from older files to save memory (keep only most recent 30)
     for idx, data in enumerate(all_data):
@@ -880,7 +1061,20 @@ def load_all_csv_files_without_limits():
                 
                 # Check if file is compressed
                 if filename.endswith('.gz'):
-                    csv_content = StringIO(gzip.decompress(csv_response.content).decode('utf-8'))
+                    try:
+                        # Check if file is actually gzipped by examining magic number
+                        if csv_response.content[:2] == b'\x1f\x8b':
+                            # Proper gzip file - decompress it
+                            csv_content = StringIO(gzip.decompress(csv_response.content).decode('utf-8'))
+                        else:
+                            # Not actually gzipped despite .gz extension - read as plain text
+                            csv_content = StringIO(csv_response.content.decode('utf-8'))
+                    except Exception as decompress_error:
+                        # If decompression fails, try as plain text
+                        try:
+                            csv_content = StringIO(csv_response.content.decode('utf-8'))
+                        except Exception as decode_error:
+                            return None, filename, f"Decompression/decode error: {decompress_error}"
                 else:
                     csv_content = StringIO(csv_response.text)
                 
@@ -1035,8 +1229,15 @@ def load_partial_database_clean(st):
         date_dirs = []
         
         for item in contents:
-            if item.get('type') == 'dir' and re.match(r'\d{2}\.\d{4}', item.get('name', '')):
-                date_dirs.append(item['name'])
+            dir_name = item.get('name', '')
+            # More flexible patterns: MM.YYYY, YYYY-MM, Month names, etc.
+            if item.get('type') == 'dir' and (
+                re.match(r'\d{2}\.\d{4}', dir_name) or  # MM.YYYY
+                re.match(r'\d{4}-\d{2}', dir_name) or   # YYYY-MM
+                re.match(r'\d{2}-\d{4}', dir_name) or   # MM-YYYY
+                any(month.lower() in dir_name.lower() for month in ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'])
+            ):
+                date_dirs.append(dir_name)
         
         st.sidebar.info(f"📅 Found {len(date_dirs)} date directories")
         
@@ -1779,13 +1980,16 @@ def select_partial_files(csv_files):
         filename = file_info['name']
         
         # Extract date from filename - match actual patterns in repository
+        # Handle both plain filenames and paths like "05.2026/filename.csv"
+        basename = filename.split('/')[-1]  # Get just the filename without directory path
+        
         date_match = None
-        if "comprehensive_player_data" in filename:
-            date_match = re.search(r'(\d{4}-\d{2}-\d{2})_(\d{6})', filename)
-        elif "realm_Ruby_analytics" in filename:
-            date_match = re.search(r'(\d{4}-\d{2}-\d{2})_(\d{6})', filename)
-        elif "Ruby_" in filename and ".csv.gz" in filename:
-            date_match = re.search(r'(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})', filename)
+        if "comprehensive_player_data" in basename:
+            date_match = re.search(r'(\d{4}-\d{2}-\d{2})_(\d{6})', basename)
+        elif "realm_Ruby_analytics" in basename:
+            date_match = re.search(r'(\d{4}-\d{2}-\d{2})_(\d{6})', basename)
+        elif "Ruby_" in basename and ".csv.gz" in basename:
+            date_match = re.search(r'(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})', basename)
             if date_match:
                 # Convert HH-MM-SS to HHMMSS format
                 time_str = date_match.group(2).replace('-', '')
@@ -1905,7 +2109,20 @@ def download_files_with_progress(files, headers, mode="full"):
             # Parse the content
             parse_start = time.time()
             if file_info['name'].endswith('.gz'):
-                csv_content = StringIO(gzip.decompress(response.content).decode('utf-8'))
+                try:
+                    # Check if file is actually gzipped by examining magic number
+                    if response.content[:2] == b'\x1f\x8b':
+                        # Proper gzip file - decompress it
+                        csv_content = StringIO(gzip.decompress(response.content).decode('utf-8'))
+                    else:
+                        # Not actually gzipped despite .gz extension - read as plain text
+                        csv_content = StringIO(response.content.decode('utf-8'))
+                except Exception as decompress_error:
+                    # If decompression fails, try as plain text
+                    try:
+                        csv_content = StringIO(response.content.decode('utf-8'))
+                    except Exception as decode_error:
+                        return None, file_info['name'], f"Decompression/decode error: {decompress_error}", bytes_downloaded, download_time, 0
             else:
                 csv_content = StringIO(response.text)
             

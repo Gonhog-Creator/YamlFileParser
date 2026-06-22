@@ -364,9 +364,41 @@ class S3Automation:
             print("No old files to prune")
             return 0
         
-        # Columns to remove
+        # Check if files are already pruned by looking for 'compressed' field
+        unpruned_files = []
+        for file_path, file_date in old_files:
+            try:
+                local_csv = self.download_github_file(file_path)
+                if not local_csv:
+                    continue
+                
+                # Check first row for 'compressed' field
+                is_already_pruned = False
+                with gzip.open(local_csv, 'rt', encoding='utf-8') as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        if 'compressed' in row and row['compressed'] == 'true':
+                            is_already_pruned = True
+                        break  # Only check first row
+                
+                os.remove(local_csv)
+                
+                if not is_already_pruned:
+                    unpruned_files.append((file_path, file_date))
+                else:
+                    print(f"Skipping {file_path} - already pruned")
+            except Exception as e:
+                print(f"Error checking {file_path}: {e}")
+        
+        print(f"Found {len(unpruned_files)} unpruned files to process")
+        
+        if not unpruned_files:
+            print("All old files are already pruned")
+            return 0
+        
+        # Columns to remove - KEEP uuid for tracking, remove username and account_id
         columns_to_remove = {
-            'uuid', 'username', 'account_id', 'created_at', 'pve_power', 'pvp_power',
+            'username', 'account_id', 'created_at', 'pve_power', 'pvp_power',
             'race', 'race_variation', 'realm_id', 'tax', 'tutorial_completed', 'version',
             'auto_waver_activated', 'scheduler_processing_claimed_at',
             'total_effects', 'active_effects', 'permanent_effects', 'effect_types',
@@ -381,7 +413,7 @@ class S3Automation:
         processed_count = 0
         failed_count = 0
         
-        for file_path, file_date in old_files:
+        for file_path, file_date in unpruned_files:
             print(f"\nPruning {file_path} (from {file_date.strftime('%Y-%m-%d')})")
             
             try:
@@ -399,6 +431,8 @@ class S3Automation:
                     for row in reader:
                         # Remove unwanted columns
                         pruned_row = {k: v for k, v in row.items() if k not in columns_to_remove}
+                        # Add compressed field to mark as pruned
+                        pruned_row['compressed'] = 'true'
                         pruned_data.append(pruned_row)
                 
                 # Write pruned CSV
@@ -552,7 +586,7 @@ class S3Automation:
             else:
                 print("No tar.gz files found in S3 bucket")
             
-            # Always run pruning for old files after normal processing
+            # Run pruning for old files (>14 days) - keeps core data but removes detailed metadata
             print("\n=== Running pruning for old files ===")
             self.reprocess_old_files_with_pruning()
             

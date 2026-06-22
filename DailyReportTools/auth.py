@@ -88,7 +88,7 @@ def login_page():
         st.subheader("Database Mode")
         database_mode_index = st.radio(
             "Select database loading mode:",
-            options=["Full Database", "Partial Database"],
+            options=["Partial Database", "Full Database"],
             key="database_mode_selection",
             help="Full: Loads all data (slower)\nPartial: Loads recent data + 2 points per day (faster)"
         )

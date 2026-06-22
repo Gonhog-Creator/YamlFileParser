@@ -142,6 +142,8 @@ def create_skins_tab(filtered_df):
                             'Hanami Avatar Border': 'avatar_border_hanami.webp',
                             'Stone Pack Avatar Border': 'skin_avatar_stone_pack.webp',
                             'Stone Pack Fortress': 'skin_stone_pack_fortress.webp',
+                            'skin_demon_tower_fortress(building)': 'skin_demon_tower_fortress.webp',
+                            'skin_avatar_border_demon_tower(avatar_border)': 'skin_avatar_border_demon_tower.webp',
                         }
                         
                         # Sort skins by player count

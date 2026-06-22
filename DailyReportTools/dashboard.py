@@ -551,8 +551,23 @@ else:
                                         prev_df = prev_row['raw_player_data']
                                         
                                         # Check if required columns exist before merging
-                                        current_cols = ['username']
-                                        prev_cols = ['username']
+                                        current_cols = []
+                                        prev_cols = []
+                                        
+                                        # Use username if available, otherwise use uuid or account_id
+                                        id_col = None
+                                        if 'username' in current_df.columns and 'username' in prev_df.columns:
+                                            current_cols.append('username')
+                                            prev_cols.append('username')
+                                            id_col = 'username'
+                                        elif 'uuid' in current_df.columns and 'uuid' in prev_df.columns:
+                                            current_cols.append('uuid')
+                                            prev_cols.append('uuid')
+                                            id_col = 'uuid'
+                                        elif 'account_id' in current_df.columns and 'account_id' in prev_df.columns:
+                                            current_cols.append('account_id')
+                                            prev_cols.append('account_id')
+                                            id_col = 'account_id'
                                         
                                         # Add power column if it exists
                                         if 'power' in current_df.columns:
@@ -571,12 +586,12 @@ else:
                                             prev_cols.append('troops')
                                         
                                         # Only merge if we have the required columns
-                                        if len(current_cols) > 1 and len(prev_cols) > 1:
+                                        if len(current_cols) > 1 and len(prev_cols) > 1 and id_col:
                                             # Merge current and 7-day-ago data to find active players
                                             merged_df = pd.merge(
                                                 current_df[current_cols],
                                                 prev_df[prev_cols],
-                                                on='username',
+                                                on=id_col,
                                                 suffixes=('_current', '_previous'),
                                                 how='outer'
                                             )

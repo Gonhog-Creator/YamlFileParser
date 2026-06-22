@@ -310,7 +310,16 @@ def render_alliance_selection(alliance_names, current_stats, filtered_df):
             member_df = pd.DataFrame(member_list)
             
             # Prepare member data for display
-            display_columns = ['username', 'power', 'troops_json', 'resource_gold', 'resource_lumber', 'resource_stone', 'resource_metal', 'resource_food']
+            # Only select one ID column to avoid duplicates
+            id_columns = []
+            if 'username' in member_df.columns:
+                id_columns.append('username')
+            elif 'uuid' in member_df.columns:
+                id_columns.append('uuid')
+            elif 'account_id' in member_df.columns:
+                id_columns.append('account_id')
+            
+            display_columns = id_columns + ['power', 'troops_json', 'resource_gold', 'resource_lumber', 'resource_stone', 'resource_metal', 'resource_food']
             available_columns = [col for col in display_columns if col in member_df.columns]
             
             if available_columns:
@@ -337,7 +346,7 @@ def render_alliance_selection(alliance_names, current_stats, filtered_df):
                         except:
                             return 0
                     member_table['Troops'] = member_table['troops_json'].apply(calculate_troops)
-                    display_columns = ['username', 'power', 'Troops', 'resource_gold', 'resource_lumber', 'resource_stone', 'resource_metal', 'resource_food']
+                    display_columns = ['username', 'uuid', 'account_id', 'power', 'Troops', 'resource_gold', 'resource_lumber', 'resource_stone', 'resource_metal', 'resource_food']
                     available_columns = [col for col in display_columns if col in member_table.columns]
                     member_table = member_table[available_columns].copy()
                 
@@ -347,6 +356,8 @@ def render_alliance_selection(alliance_names, current_stats, filtered_df):
                 # Rename columns for better display
                 column_rename_map = {
                     'username': 'Player Name',
+                    'uuid': 'Player Name',
+                    'account_id': 'Player Name',
                     'power': 'Power',
                     'troops_json': 'Troops',
                     'Troops': 'Troops',

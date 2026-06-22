@@ -98,10 +98,12 @@ def create_daily_report_tab(filtered_df):
             
             if week_ago_row is not None:
                 week_ago_df = week_ago_row['raw_player_data']
+                # Determine which ID column to use for merging
+                id_col = 'username' if 'username' in current_df.columns else ('uuid' if 'uuid' in current_df.columns else 'account_id')
                 merged_df = pd.merge(
-                    current_df[['username', 'power', 'total_troops']],
-                    week_ago_df[['username', 'power', 'total_troops']],
-                    on='username',
+                    current_df[[id_col, 'power', 'total_troops']],
+                    week_ago_df[[id_col, 'power', 'total_troops']],
+                    on=id_col,
                     suffixes=('_current', '_previous'),
                     how='outer'
                 )
@@ -114,10 +116,11 @@ def create_daily_report_tab(filtered_df):
                 ]
             else:
                 # Fall back to 1-day window if no 7-day data
+                id_col = 'username' if 'username' in current_df.columns else ('uuid' if 'uuid' in current_df.columns else 'account_id')
                 merged_df = pd.merge(
-                    current_df[['username', 'power', 'total_troops']],
-                    previous_df[['username', 'power', 'total_troops']],
-                    on='username',
+                    current_df[[id_col, 'power', 'total_troops']],
+                    previous_df[[id_col, 'power', 'total_troops']],
+                    on=id_col,
                     suffixes=('_current', '_previous'),
                     how='outer'
                 )
@@ -272,9 +275,10 @@ def create_daily_report_tab(filtered_df):
             
             # Top attackers (daily changes)
             # Merge current and previous data to calculate daily changes
-            merged_df = current_df[['username', 'total_attacks', 'autowaver_attacks', 'manual_attacks']].merge(
-                previous_df[['username', 'total_attacks', 'autowaver_attacks', 'manual_attacks']],
-                on='username',
+            id_col = 'username' if 'username' in current_df.columns else ('uuid' if 'uuid' in current_df.columns else 'account_id')
+            merged_df = current_df[[id_col, 'total_attacks', 'autowaver_attacks', 'manual_attacks']].merge(
+                previous_df[[id_col, 'total_attacks', 'autowaver_attacks', 'manual_attacks']],
+                on=id_col,
                 suffixes=('_current', '_previous')
             )
             
@@ -296,7 +300,7 @@ def create_daily_report_tab(filtered_df):
                 daily_attackers['daily_total'] = daily_attackers['daily_total'].apply(lambda x: format_comma(x) if pd.notna(x) else '0')
                 daily_attackers['daily_autowaver'] = daily_attackers['daily_autowaver'].apply(lambda x: format_comma(x) if pd.notna(x) else '0')
                 daily_attackers['daily_manual'] = daily_attackers['daily_manual'].apply(lambda x: format_comma(x) if pd.notna(x) else '0')
-                daily_attackers = daily_attackers[['username', 'daily_total', 'daily_autowaver', 'daily_manual']]
+                daily_attackers = daily_attackers[[id_col, 'daily_total', 'daily_autowaver', 'daily_manual']]
                 daily_attackers.columns = ['Player', 'Daily Total', 'Daily Autowaver', 'Daily Manual']
                 st.dataframe(daily_attackers, hide_index=True, width='stretch')
             
@@ -364,9 +368,10 @@ def create_daily_report_tab(filtered_df):
                 st.metric("Store Purchases", format_comma(current_store), delta=f"{store_change:+,}")
             
             # Top purchasers (daily changes)
-            purchases_merged = current_df[['username', 'total_purchases', 'total_shop_purchases', 'total_store_purchases']].merge(
-                previous_df[['username', 'total_purchases', 'total_shop_purchases', 'total_store_purchases']],
-                on='username',
+            id_col = 'username' if 'username' in current_df.columns else ('uuid' if 'uuid' in current_df.columns else 'account_id')
+            purchases_merged = current_df[[id_col, 'total_purchases', 'total_shop_purchases', 'total_store_purchases']].merge(
+                previous_df[[id_col, 'total_purchases', 'total_shop_purchases', 'total_store_purchases']],
+                on=id_col,
                 suffixes=('_current', '_previous')
             )
             
@@ -385,7 +390,7 @@ def create_daily_report_tab(filtered_df):
                 daily_purchasers['daily_total'] = daily_purchasers['daily_total'].apply(lambda x: format_comma(x) if pd.notna(x) else '0')
                 daily_purchasers['daily_shop'] = daily_purchasers['daily_shop'].apply(lambda x: format_comma(x) if pd.notna(x) else '0')
                 daily_purchasers['daily_store'] = daily_purchasers['daily_store'].apply(lambda x: format_comma(x) if pd.notna(x) else '0')
-                daily_purchasers = daily_purchasers[['username', 'daily_total', 'daily_shop', 'daily_store']]
+                daily_purchasers = daily_purchasers[[id_col, 'daily_total', 'daily_shop', 'daily_store']]
                 daily_purchasers.columns = ['Player', 'Daily Total', 'Daily Shop', 'Daily Store']
                 st.dataframe(daily_purchasers, hide_index=True, width='stretch')
         else:
@@ -397,10 +402,11 @@ def create_daily_report_tab(filtered_df):
         col1, col2 = st.columns(2)
         
         # Create merged dataframe for power analysis
+        id_col = 'username' if 'username' in current_df.columns else ('uuid' if 'uuid' in current_df.columns else 'account_id')
         power_merged_df = pd.merge(
-            current_df[['username', 'power', 'total_troops', 'alliance_name']],
-            previous_df[['username', 'power', 'total_troops', 'alliance_name']],
-            on='username',
+            current_df[[id_col, 'power', 'total_troops', 'alliance_name']],
+            previous_df[[id_col, 'power', 'total_troops', 'alliance_name']],
+            on=id_col,
             suffixes=('_current', '_previous'),
             how='outer'
         )
@@ -412,7 +418,7 @@ def create_daily_report_tab(filtered_df):
         with col1:
             st.markdown("**🏆 Top Power Gainers**")
             merged_df_sorted = power_merged_df[power_merged_df['power_change'].notna()].sort_values('power_change', ascending=False)
-            top_gainers = merged_df_sorted.head(5)[['username', 'alliance_name', 'power_previous', 'power_current', 'power_change']].copy()
+            top_gainers = merged_df_sorted.head(5)[[id_col, 'alliance_name', 'power_previous', 'power_current', 'power_change']].copy()
             
             if not top_gainers.empty:
                 top_gainers['alliance_name'] = top_gainers['alliance_name'].fillna('')
@@ -424,7 +430,7 @@ def create_daily_report_tab(filtered_df):
             
             st.markdown("**📉 Top Power Losers**")
             merged_df_sorted_losers = power_merged_df[power_merged_df['power_change'].notna()].sort_values('power_change', ascending=True)
-            top_losers = merged_df_sorted_losers.head(5)[['username', 'alliance_name', 'power_previous', 'power_current', 'power_change']].copy()
+            top_losers = merged_df_sorted_losers.head(5)[[id_col, 'alliance_name', 'power_previous', 'power_current', 'power_change']].copy()
             
             if not top_losers.empty:
                 top_losers['alliance_name'] = top_losers['alliance_name'].fillna('')

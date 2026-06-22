@@ -146,7 +146,13 @@ def create_power_tab(filtered_df):
             player_df = latest_data['raw_player_data']
             
             if isinstance(player_df, pd.DataFrame) and not player_df.empty and 'power' in player_df.columns:
-                top_players = player_df.nlargest(10, 'power')[['account_id', 'power', 'alliance_name', 'username']]
+                # Select columns dynamically based on what's available
+                cols = ['account_id', 'power', 'alliance_name']
+                if 'username' in player_df.columns:
+                    cols.append('username')
+                elif 'uuid' in player_df.columns:
+                    cols.append('uuid')
+                top_players = player_df.nlargest(10, 'power')[cols]
                 
                 if not top_players.empty:
                     # Display in smaller tiles using 2 rows of 5 columns
@@ -163,6 +169,10 @@ def create_power_tab(filtered_df):
                             # Use username if available, otherwise use account ID
                             if 'username' in player and pd.notna(player['username']):
                                 player_name = str(player['username'])
+                            elif 'uuid' in player and pd.notna(player['uuid']):
+                                player_name = str(player['uuid'])
+                            elif 'account_id' in player and pd.notna(player['account_id']):
+                                player_name = str(player['account_id'])
                             else:
                                 account_id = str(player['account_id'])[:8] + "..." if len(str(player['account_id'])) > 8 else str(player['account_id'])
                                 player_name = account_id
@@ -274,7 +284,13 @@ def create_power_tab(filtered_df):
             # Get top 10 players from latest data
             latest_player_df = latest_data['raw_player_data']
             if isinstance(latest_player_df, pd.DataFrame) and not latest_player_df.empty and 'power' in latest_player_df.columns:
-                top_10_players_data = latest_player_df.nlargest(10, 'power')[['account_id', 'username']]
+                # Select columns dynamically based on what's available
+                cols = ['account_id']
+                if 'username' in latest_player_df.columns:
+                    cols.append('username')
+                elif 'uuid' in latest_player_df.columns:
+                    cols.append('uuid')
+                top_10_players_data = latest_player_df.nlargest(10, 'power')[cols]
                 
                 # Create mapping of account_id to player name
                 player_name_mapping = {}
@@ -282,6 +298,8 @@ def create_power_tab(filtered_df):
                     account_id = player['account_id']
                     if 'username' in player and pd.notna(player['username']):
                         player_name_mapping[account_id] = str(player['username'])
+                    elif 'uuid' in player and pd.notna(player['uuid']):
+                        player_name_mapping[account_id] = str(player['uuid'])
                     else:
                         player_name_mapping[account_id] = str(account_id)[:8] + "..."
                 
@@ -298,7 +316,15 @@ def create_power_tab(filtered_df):
                         # Check if player_data is a DataFrame
                         if isinstance(player_data, pd.DataFrame) and not player_data.empty:
                             for player_id in top_10_players:
-                                player_row = player_data[player_data['account_id'] == player_id]
+                                # Try account_id first, then uuid, then username
+                                if 'account_id' in player_data.columns:
+                                    player_row = player_data[player_data['account_id'] == player_id]
+                                elif 'uuid' in player_data.columns:
+                                    player_row = player_data[player_data['uuid'] == player_id]
+                                elif 'username' in player_data.columns:
+                                    player_row = player_data[player_data['username'] == player_id]
+                                else:
+                                    player_row = pd.DataFrame()
                                 if not player_row.empty:
                                     power = player_row['power'].iloc[0]
                                     player_growth_data.append({

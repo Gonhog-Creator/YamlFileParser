@@ -35,6 +35,77 @@ def normalize_store_name(product_id):
         return product_id.replace('_', ' ').title()
 
 @st.fragment
+def render_purchases_chart(purchase_timeline, selected_name):
+    """Fragment for Purchases Over Time chart - only reruns when selection changes"""
+    if not purchase_timeline.empty:
+        # Item selection with multiselect dropdown
+        st.markdown("#### Select items to display:")
+        
+        # Get unique items from purchase timeline
+        all_items = sorted(set(purchase_timeline['item']))
+        
+        # Create display names mapping
+        display_names = {}
+        for item in all_items:
+            display_names[item] = normalize_store_name(item) if len(item.split('_')) > 1 else item.replace('_', ' ').title()
+        
+        # Multiselect dropdown with search
+        # Default to Maddalion Chests and Medallions
+        default_items = []
+        for item, display_name in display_names.items():
+            if 'maddalion' in item.lower() or 'medallion' in item.lower():
+                default_items.append(display_name)
+        
+        # If no matching items found, default to all items
+        if not default_items:
+            default_items = list(display_names.values())
+        
+        selected_display_names = st.multiselect(
+            "Filter by item",
+            options=list(display_names.values()),
+            default=default_items,
+            key=f"purchase_{selected_name}_multiselect"
+        )
+        
+        # Map back to original item names
+        selected_items = [item for item, display_name in display_names.items() if display_name in selected_display_names]
+        
+        if selected_items:
+            # Filter timeline by selected items
+            filtered_timeline = purchase_timeline[purchase_timeline['item'].isin(selected_items)]
+            
+            # Group by date and item
+            daily_item_purchases = filtered_timeline.groupby([filtered_timeline['date'].dt.date, 'item']).agg({
+                'amount': 'sum'
+            }).reset_index()
+            daily_item_purchases.columns = ['date', 'item', 'total_amount']
+            daily_item_purchases['date'] = pd.to_datetime(daily_item_purchases['date'])
+            
+            # Create line chart
+            fig_purchases = go.Figure()
+            
+            for item in selected_items:
+                item_data = daily_item_purchases[daily_item_purchases['item'] == item]
+                if not item_data.empty:
+                    display_name = normalize_store_name(item) if len(item.split('_')) > 1 else item.replace('_', ' ').title()
+                    fig_purchases.add_trace(go.Scatter(
+                        x=item_data['date'],
+                        y=item_data['total_amount'],
+                        mode='lines+markers',
+                        name=display_name
+                    ))
+            
+            fig_purchases.update_layout(
+                title='Purchases Over Time by Item',
+                xaxis_title='Date',
+                yaxis_title='Total Purchase Amount',
+                hovermode='x unified'
+            )
+            st.plotly_chart(fig_purchases, config={'displayModeBar': False})
+        else:
+            st.info("Select items to display on the chart")
+
+@st.fragment
 def create_purchases_tab(filtered_df):
     """Create the Purchases tab"""
     
@@ -63,10 +134,10 @@ def create_purchases_tab(filtered_df):
     player_names = []
     player_id_mapping = {}
     
-    if 'username' in player_data.columns and 'account_id' in player_data.columns:
+    if 'username' in player_data.columns or 'uuid' in player_data.columns or 'account_id' in player_data.columns:
         for _, player in player_data.iterrows():
-            username = player['username']
-            account_id = player['account_id']
+            username = player.get('username', player.get('uuid', player.get('account_id', 'Unknown')))
+            account_id = player.get('account_id', player.get('uuid', 'Unknown'))
             if pd.notna(username) and pd.notna(account_id):
                 player_names.append(username)
                 player_id_mapping[username] = account_id
@@ -83,8 +154,8 @@ def create_purchases_tab(filtered_df):
     if 'shop_purchases' in player_data.columns:
         for _, row in player_data.iterrows():
             if pd.notna(row['shop_purchases']) and row['shop_purchases']:
-                username = row['username']
-                account_id = row['account_id']
+                username = row.get('username', row.get('uuid', row.get('account_id', 'Unknown')))
+                account_id = row.get('account_id', row.get('uuid', 'Unknown'))
                 purchases = row['shop_purchases'].split('|')
                 for purchase in purchases:
                     if ':' in purchase:
@@ -159,8 +230,8 @@ def create_purchases_tab(filtered_df):
     if 'store_purchases' in player_data.columns:
         for _, row in player_data.iterrows():
             if pd.notna(row['store_purchases']) and row['store_purchases']:
-                username = row['username']
-                account_id = row['account_id']
+                username = row.get('username', row.get('uuid', row.get('account_id', 'Unknown')))
+                account_id = row.get('account_id', row.get('uuid', 'Unknown'))
                 purchases = row['store_purchases'].split('|')
                 for purchase in purchases:
                     if ':' in purchase:
@@ -385,6 +456,10 @@ def create_purchases_tab(filtered_df):
         elif all_shop_purchases or all_store_purchases:
             st.info("Purchase data available for only one category.")
     
+    # Purchases Over Time by Item Chart
+    st.markdown("---")
+    render_purchases_chart(timeline_df, "purchases_tab")
+    
     # Player search section
     st.markdown("---")
     st.markdown("#### Player Search")
@@ -404,8 +479,8 @@ def create_purchases_tab(filtered_df):
     if 'shop_purchases' in player_data.columns:
         for _, row in player_data.iterrows():
             if pd.notna(row['shop_purchases']) and row['shop_purchases']:
-                username = row['username']
-                account_id = row['account_id']
+                username = row.get('username', row.get('uuid', row.get('account_id', 'Unknown')))
+                account_id = row.get('account_id', row.get('uuid', 'Unknown'))
                 # Parse shop purchases: format "item_name:amount:purchased_at|item_name:amount:purchased_at"
                 purchases = row['shop_purchases'].split('|')
                 for purchase in purchases:
@@ -440,7 +515,7 @@ def create_purchases_tab(filtered_df):
         if not shop_by_player.empty:
             st.markdown("**Top Shop Purchasers**")
             for _, row in shop_by_player.iterrows():
-                player_name = row['username']
+                player_name = row.get('username', row.get('uuid', row.get('account_id', 'Unknown')))
                 with st.expander(f"{player_name} - {row['total_purchases']} purchases"):
                     for i, (item, amount, date) in enumerate(zip(row['item_name'], row['amount'], row['purchased_at'])):
                         st.markdown(f"- {item} (x{amount}) on {date}")
@@ -481,8 +556,8 @@ def create_purchases_tab(filtered_df):
     if 'store_purchases' in player_data.columns:
         for _, row in player_data.iterrows():
             if pd.notna(row['store_purchases']) and row['store_purchases']:
-                username = row['username']
-                account_id = row['account_id']
+                username = row.get('username', row.get('uuid', row.get('account_id', 'Unknown')))
+                account_id = row.get('account_id', row.get('uuid', 'Unknown'))
                 # Parse store purchases: format "product_id:amount:purchased_at|product_id:amount:purchased_at"
                 purchases = row['store_purchases'].split('|')
                 for purchase in purchases:
@@ -517,7 +592,7 @@ def create_purchases_tab(filtered_df):
         if not store_by_player.empty:
             st.markdown("**Top Store Purchasers**")
             for _, row in store_by_player.iterrows():
-                player_name = row['username']
+                player_name = row.get('username', row.get('uuid', row.get('account_id', 'Unknown')))
                 with st.expander(f"{player_name} - {row['total_purchases']} purchases"):
                     for i, (product, amount, date) in enumerate(zip(row['product_id'], row['amount'], row['purchased_at'])):
                         normalized_name = normalize_store_name(product)
@@ -580,7 +655,15 @@ def render_player_search(player_names, player_data, player_id_mapping):
             st.markdown(f"#### Purchases for {selected_player_name}")
             
             # Get player's data from the player_data dataframe
-            player_record = player_data[player_data['account_id'] == player_id]
+            # Try account_id first, then uuid, then username
+            if 'account_id' in player_data.columns:
+                player_record = player_data[player_data['account_id'] == player_id]
+            elif 'uuid' in player_data.columns:
+                player_record = player_data[player_data['uuid'] == player_id]
+            elif 'username' in player_data.columns:
+                player_record = player_data[player_data['username'] == player_id]
+            else:
+                player_record = pd.DataFrame()
             
             if not player_record.empty:
                 player_row = player_record.iloc[-1]  # Get latest data

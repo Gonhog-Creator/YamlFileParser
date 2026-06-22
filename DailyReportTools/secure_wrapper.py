@@ -228,6 +228,8 @@ def main():
         st.info("Please ensure dashboard.py is in the DailyReportTools directory")
     except Exception as e:
         st.error(f"Error loading dashboard: {e}")
+        import traceback
+        st.error(f"Traceback: {traceback.format_exc()}")
         st.info("Please check the dashboard.py file for any syntax errors")
 
 if __name__ == "__main__":

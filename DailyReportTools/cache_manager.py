@@ -431,7 +431,7 @@ class CacheManager:
                     
                     # Only include if player has unprotected resources AND is not ceasefire protected
                     if player_unprotected > 0 and not ceasefire_protected:
-                        username = player.get('username', 'Unknown')
+                        username = player.get('username', player.get('uuid', player.get('account_id', 'Unknown')))
                         
                         data_list.append({
                             'Player Name': username,
@@ -546,7 +546,12 @@ class CacheManager:
         
         cache = st.session_state[self.cache_key]
         for account_id, player_data in cache['player_lookup'].items():
+            # Try username first, then uuid, then account_id
             if player_data.get('username') == username:
+                return player_data
+            elif player_data.get('uuid') == username:
+                return player_data
+            elif str(account_id) == str(username):
                 return player_data
         return None
     
@@ -574,7 +579,15 @@ class CacheManager:
                     
                     if isinstance(player_df, pd.DataFrame) and not player_df.empty:
                         # Find the player in this data point
-                        player_row = player_df[player_df['username'] == username]
+                        # Try username first, then uuid, then account_id
+                        if 'username' in player_df.columns:
+                            player_row = player_df[player_df['username'] == username]
+                        elif 'uuid' in player_df.columns:
+                            player_row = player_df[player_df['uuid'] == username]
+                        elif 'account_id' in player_df.columns:
+                            player_row = player_df[player_df['account_id'] == username]
+                        else:
+                            player_row = pd.DataFrame()
                         
                         if not player_row.empty:
                             player_data = player_row.iloc[0].to_dict()

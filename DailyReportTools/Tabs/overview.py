@@ -323,7 +323,7 @@ def create_overview_tab(filtered_df):
                                     if i + j < len(top_power_players):
                                         with cols[j]:
                                             player = top_power_players.iloc[i + j]
-                                            player_name = player.get('username', str(player['account_id'])[:8] + "...")
+                                            player_name = player.get('username', player.get('uuid', str(player['account_id'])[:8] + "..."))
                                             power_val = int(player['power'])
                                             st.markdown(f"**#{i + j + 1}**<br>{player_name}<br>{power_val:,}", unsafe_allow_html=True)
             else:

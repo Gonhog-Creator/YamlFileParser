@@ -347,7 +347,16 @@ def create_ceasefire_tab(filtered_df):
             )
         
         # Prepare player data for display
-        display_columns = ['username', 'power', 'resource_gold', 'resource_lumber', 'resource_stone', 'resource_metal', 'resource_food', 'created_at']
+        # Only select one ID column to avoid duplicates
+        id_columns = []
+        if 'username' in protected_players.columns:
+            id_columns.append('username')
+        elif 'uuid' in protected_players.columns:
+            id_columns.append('uuid')
+        elif 'account_id' in protected_players.columns:
+            id_columns.append('account_id')
+        
+        display_columns = id_columns + ['power', 'resource_gold', 'resource_lumber', 'resource_stone', 'resource_metal', 'resource_food', 'created_at']
         available_columns = [col for col in display_columns if col in protected_players.columns]
         
         if available_columns:
@@ -359,6 +368,8 @@ def create_ceasefire_tab(filtered_df):
             # Rename columns for better display
             column_rename_map = {
                 'username': 'Player Name',
+                'uuid': 'Player Name',
+                'account_id': 'Player Name',
                 'power': 'Power',
                 'resource_gold': 'Gold',
                 'resource_lumber': 'Lumber',
@@ -400,7 +411,14 @@ def create_ceasefire_tab(filtered_df):
                         
                         if not resource_data_filtered.empty:
                             # Get player names for non-zero values
-                            player_names = protected_players.loc[resource_data_filtered.index, 'username']
+                            if 'username' in protected_players.columns:
+                                player_names = protected_players.loc[resource_data_filtered.index, 'username']
+                            elif 'uuid' in protected_players.columns:
+                                player_names = protected_players.loc[resource_data_filtered.index, 'uuid']
+                            elif 'account_id' in protected_players.columns:
+                                player_names = protected_players.loc[resource_data_filtered.index, 'account_id']
+                            else:
+                                player_names = pd.Series(['Unknown'] * len(resource_data_filtered), index=resource_data_filtered.index)
                             
                             # Create pie chart using plotly express for simpler rendering
                             pie_df = pd.DataFrame({

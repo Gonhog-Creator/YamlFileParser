@@ -391,7 +391,15 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
         # Use raw_player_data directly to get current data instead of cached
         if 'raw_player_data' in latest_data and latest_data['raw_player_data'] is not None:
             player_df = latest_data['raw_player_data']
-            player = player_df[player_df['username'] == selected_name]
+            # Try username first, then uuid, then account_id
+            if 'username' in player_df.columns:
+                player = player_df[player_df['username'] == selected_name]
+            elif 'uuid' in player_df.columns:
+                player = player_df[player_df['uuid'] == selected_name]
+            elif 'account_id' in player_df.columns:
+                player = player_df[player_df['account_id'] == selected_name]
+            else:
+                player = pd.DataFrame()
             if not player.empty and 'troops_json' in player.columns:
                 st.markdown("#### Troops")
                 try:
@@ -704,7 +712,15 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
             if 'raw_player_data' in row and row['raw_player_data'] is not None:
                 df = row['raw_player_data']
                 if isinstance(df, pd.DataFrame):
-                    player = df[df['username'] == selected_name]
+                    # Try username first, then uuid, then account_id
+                    if 'username' in df.columns:
+                        player = df[df['username'] == selected_name]
+                    elif 'uuid' in df.columns:
+                        player = df[df['uuid'] == selected_name]
+                    elif 'account_id' in df.columns:
+                        player = df[df['account_id'] == selected_name]
+                    else:
+                        player = pd.DataFrame()
                     if not player.empty:
                         power_data.append({
                             'Date': row['date'],
@@ -726,7 +742,15 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
             if 'raw_player_data' in row and row['raw_player_data'] is not None:
                 df = row['raw_player_data']
                 if isinstance(df, pd.DataFrame):
-                    player = df[df['username'] == selected_name]
+                    # Try username first, then uuid, then account_id
+                    if 'username' in df.columns:
+                        player = df[df['username'] == selected_name]
+                    elif 'uuid' in df.columns:
+                        player = df[df['uuid'] == selected_name]
+                    elif 'account_id' in df.columns:
+                        player = df[df['account_id'] == selected_name]
+                    else:
+                        player = pd.DataFrame()
                     if not player.empty:
                         for col in resource_columns:
                             if col in player.columns:
@@ -753,7 +777,15 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
         if 'raw_player_data' in row and row['raw_player_data'] is not None:
             df = row['raw_player_data']
             if isinstance(df, pd.DataFrame):
-                player = df[df['username'] == selected_name]
+                # Try username first, then uuid, then account_id
+                if 'username' in df.columns:
+                    player = df[df['username'] == selected_name]
+                elif 'uuid' in df.columns:
+                    player = df[df['uuid'] == selected_name]
+                elif 'account_id' in df.columns:
+                    player = df[df['account_id'] == selected_name]
+                else:
+                    player = pd.DataFrame()
                 if not player.empty and 'items_json' in player.columns:
                     try:
                         items_dict = json.loads(player['items_json'].iloc[0])
@@ -843,7 +875,15 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
             if 'raw_player_data' in row and row['raw_player_data'] is not None:
                 df = row['raw_player_data']
                 if isinstance(df, pd.DataFrame):
-                    player = df[df['username'] == selected_name]
+                    # Try username first, then uuid, then account_id
+                    if 'username' in df.columns:
+                        player = df[df['username'] == selected_name]
+                    elif 'uuid' in df.columns:
+                        player = df[df['uuid'] == selected_name]
+                    elif 'account_id' in df.columns:
+                        player = df[df['account_id'] == selected_name]
+                    else:
+                        player = pd.DataFrame()
                     if not player.empty and 'troops_json' in player.columns:
                         try:
                             troops_dict = json.loads(player['troops_json'].iloc[0])
@@ -906,7 +946,15 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
     
     # Get the selected player's data from latest_data
     player_df = latest_data['raw_player_data']
-    player_row = player_df[player_df['username'] == selected_name]
+    # Try username first, then uuid, then account_id
+    if 'username' in player_df.columns:
+        player_row = player_df[player_df['username'] == selected_name]
+    elif 'uuid' in player_df.columns:
+        player_row = player_df[player_df['uuid'] == selected_name]
+    elif 'account_id' in player_df.columns:
+        player_row = player_df[player_df['account_id'] == selected_name]
+    else:
+        player_row = pd.DataFrame()
     
     if not player_row.empty:
         player_data_row = player_row.iloc[0]
@@ -1185,7 +1233,7 @@ def create_pdd_tab(filtered_df):
                 # Create player options with name, alliance, power
                 player_options = []
                 for _, player in player_df.iterrows():
-                    player_name = player.get('username', 'Unknown')
+                    player_name = player.get('username', player.get('uuid', player.get('account_id', 'Unknown')))
                     alliance_name = player.get('alliance_name', 'None')
                     power = player.get('power', 0)
                     player_options.append(f"{player_name} | {alliance_name} | {int(power):,}")
@@ -1227,11 +1275,11 @@ def render_alts_detection(player_df):
             alt_players = group_sorted.iloc[1:]
             
             main_data = {
-                'Main Account': main_player.get('username', 'Unknown'),
+                'Main Account': main_player.get('username', main_player.get('uuid', main_player.get('account_id', 'Unknown'))),
                 'Main Power': int(main_player.get('power', 0)),
                 'Main Alliance': main_player.get('alliance_name', 'None'),
                 'IP Address': ip,
-                'Alt Accounts': ', '.join(alt_players['username'].tolist()),
+                'Alt Accounts': ', '.join(alt_players.get('username', alt_players.get('uuid', alt_players.get('account_id', []))).tolist()),
                 'Alt Powers': ', '.join([f"{int(p):,}" for p in alt_players['power'].tolist()]),
                 'Alt Alliances': ', '.join([str(a) if pd.notna(a) else 'None' for a in alt_players['alliance_name'].tolist()]),
                 'Total Alts': len(alt_players)

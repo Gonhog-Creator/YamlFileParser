@@ -380,8 +380,8 @@ def display_progress_correlation(player_df, available_columns):
                 color='alliance_name' if 'alliance_name' in player_df.columns else None,
                 color_discrete_sequence=px.colors.qualitative.Plotly,
                 labels={'alliance_name': 'Alliance', 'completed_quests_count': 'Completed Quests', 'power': 'Power'},
-                hover_data=['username', 'power_formatted'] if 'username' in player_df.columns else ['account_id', 'power_formatted'],
-                custom_data=['username', 'power_formatted'] if 'username' in player_df.columns else ['account_id', 'power_formatted']
+                hover_data=['username', 'power_formatted'] if 'username' in player_df.columns else (['uuid', 'power_formatted'] if 'uuid' in player_df.columns else ['account_id', 'power_formatted']),
+                custom_data=['username', 'power_formatted'] if 'username' in player_df.columns else (['uuid', 'power_formatted'] if 'uuid' in player_df.columns else ['account_id', 'power_formatted'])
             )
             if 'username' in player_df.columns:
                 fig_quests_power.update_traces(
@@ -411,8 +411,8 @@ def display_progress_correlation(player_df, available_columns):
                 color='alliance_name' if 'alliance_name' in player_df.columns else None,
                 color_discrete_sequence=px.colors.qualitative.Plotly,
                 labels={'alliance_name': 'Alliance', x_axis: x_title, 'power': 'Power'},
-                hover_data=['username', 'power_formatted'] if 'username' in player_df.columns else ['account_id', 'power_formatted'],
-                custom_data=['username', 'power_formatted'] if 'username' in player_df.columns else ['account_id', 'power_formatted']
+                hover_data=['username', 'power_formatted'] if 'username' in player_df.columns else (['uuid', 'power_formatted'] if 'uuid' in player_df.columns else ['account_id', 'power_formatted']),
+                custom_data=['username', 'power_formatted'] if 'username' in player_df.columns else (['uuid', 'power_formatted'] if 'uuid' in player_df.columns else ['account_id', 'power_formatted'])
             )
             if 'username' in player_df.columns:
                 fig_research_power.update_traces(

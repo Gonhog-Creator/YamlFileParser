@@ -314,8 +314,15 @@ def create_troops_tab(filtered_df):
                                 if top_players_list:
                                     tile_content += "<p style='margin: 0 0 5px 0; font-weight: bold;'>Top 5 Players:</p><ul style='margin: 0; padding-left: 20px;'>"
                                     for i, player_data in enumerate(top_players_list, 1):
-                                        if player_data.get('username'):
-                                            player_identifier = str(player_data['username'])
+                                        if player_data.get('username') or player_data.get('uuid') or player_data.get('account_id'):
+                                            if 'username' in player_data and pd.notna(player_data['username']):
+                                                player_identifier = str(player_data['username'])
+                                            elif 'uuid' in player_data and pd.notna(player_data['uuid']):
+                                                player_identifier = str(player_data['uuid'])
+                                            elif 'account_id' in player_data and pd.notna(player_data['account_id']):
+                                                player_identifier = str(player_data['account_id'])
+                                            else:
+                                                player_identifier = 'Unknown'
                                         else:
                                             account_id = str(player_data['account_id'])[:8] + "..." if len(str(player_data['account_id'])) > 8 else str(player_data['account_id'])
                                             player_identifier = account_id
@@ -332,6 +339,8 @@ def create_troops_tab(filtered_df):
                                         # Use username if available, otherwise use account ID
                                         if 'username' in player and pd.notna(player['username']):
                                             player_identifier = str(player['username'])
+                                        elif 'uuid' in player and pd.notna(player['uuid']):
+                                            player_identifier = str(player['uuid'])
                                         else:
                                             account_id = str(player['account_id'])[:8] + "..." if len(str(player['account_id'])) > 8 else str(player['account_id'])
                                             player_identifier = account_id
@@ -392,6 +401,10 @@ def create_troops_tab(filtered_df):
                     # Use username if available, otherwise use account ID
                     if 'username' in player and pd.notna(player['username']):
                         player_name = str(player['username'])
+                    elif 'uuid' in player and pd.notna(player['uuid']):
+                        player_name = str(player['uuid'])
+                    elif 'account_id' in player and pd.notna(player['account_id']):
+                        player_name = str(player['account_id'])
                     else:
                         account_id = str(player['account_id'])[:8] + "..." if len(str(player['account_id'])) > 8 else str(player['account_id'])
                         player_name = account_id
