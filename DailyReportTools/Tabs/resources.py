@@ -138,27 +138,32 @@ def create_resources_tab(filtered_df):
             
             st.plotly_chart(fig_resources, config={'displayModeBar': False})
             
-            # Elite Items Section (Fangtooth Respirators and Glowing Mandrake)
+            # Elite Items Section (Fangtooth Respirators, Glowing Mandrake, and Volcanic Rune)
             st.markdown("---")
             st.markdown("### Elite Items")
             
-            # Look for fangtooth respirators and glowing mandrake in resources data
+            # Look for fangtooth respirators, glowing mandrake, and volcanic rune in resources data
             respirator_values = []
             respirator_dates = []
             mandrake_values = []
             mandrake_dates = []
+            volcanic_rune_values = []
+            volcanic_rune_dates = []
             
             for _, row in filtered_df.iterrows():
                 respirator_count = 0
                 mandrake_count = 0
+                volcanic_rune_count = 0
                 
-                # Check resources dictionary for fangtooth and glowing mandrake
+                # Check resources dictionary for fangtooth, glowing mandrake, and volcanic rune
                 if 'resources' in row and isinstance(row['resources'], dict):
                     for resource_name, resource_value in row['resources'].items():
                         if 'fangtooth' in resource_name.lower():
                             respirator_count += resource_value
                         if 'glowing_mandrake' in resource_name.lower() or 'glowing mandrake' in resource_name.lower():
                             mandrake_count += resource_value
+                        if 'volcanic' in resource_name.lower() and 'rune' in resource_name.lower():
+                            volcanic_rune_count += resource_value
                 
                 # Also check raw_player_data for comprehensive format
                 if 'raw_player_data' in row and row['raw_player_data'] is not None:
@@ -169,11 +174,16 @@ def create_resources_tab(filtered_df):
                     # Look for resource_glowing_mandrake column
                     if 'resource_glowing_mandrake' in player_data.columns:
                         mandrake_count += player_data['resource_glowing_mandrake'].fillna(0).sum()
+                    # Look for resource_volcanic_rune column
+                    if 'resource_volcanic_rune' in player_data.columns:
+                        volcanic_rune_count += player_data['resource_volcanic_rune'].fillna(0).sum()
                 
                 respirator_values.append(respirator_count)
                 respirator_dates.append(row['date'])
                 mandrake_values.append(mandrake_count)
                 mandrake_dates.append(row['date'])
+                volcanic_rune_values.append(volcanic_rune_count)
+                volcanic_rune_dates.append(row['date'])
             
             # Filter out leading zeros for fangtooth
             if sum(respirator_values) > 0:
@@ -188,6 +198,13 @@ def create_resources_tab(filtered_df):
                 if first_nonzero_idx is not None and first_nonzero_idx > 0:
                     mandrake_values = [mandrake_values[first_nonzero_idx - 1]] + mandrake_values[first_nonzero_idx:]
                     mandrake_dates = [mandrake_dates[first_nonzero_idx - 1]] + mandrake_dates[first_nonzero_idx:]
+            
+            # Filter out leading zeros for volcanic rune
+            if sum(volcanic_rune_values) > 0:
+                first_nonzero_idx = next((i for i, v in enumerate(volcanic_rune_values) if v > 0), None)
+                if first_nonzero_idx is not None and first_nonzero_idx > 0:
+                    volcanic_rune_values = [volcanic_rune_values[first_nonzero_idx - 1]] + volcanic_rune_values[first_nonzero_idx:]
+                    volcanic_rune_dates = [volcanic_rune_dates[first_nonzero_idx - 1]] + volcanic_rune_dates[first_nonzero_idx:]
             
             # Function to create elite item chart
             def create_elite_item_chart(values, dates, name, color, image_file):
@@ -276,6 +293,12 @@ def create_resources_tab(filtered_df):
                 create_elite_item_chart(mandrake_values, mandrake_dates, "Glowing Mandrake", "#9370DB", "glowing_mandrake.webp")
             else:
                 st.info("No glowing mandrake found in the data")
+            
+            # Display Volcanic Rune chart
+            if sum(volcanic_rune_values) > 0:
+                create_elite_item_chart(volcanic_rune_values, volcanic_rune_dates, "Volcanic Rune", "#FF4500", "volcanic_rune.webp")
+            else:
+                st.info("No volcanic rune found in the data")
             
             # Combined Resources Line Chart
             st.markdown("---")

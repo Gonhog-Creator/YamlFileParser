@@ -265,12 +265,15 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
                     # Determine outpost type by checking buildings
                     has_glowing_mandrake = 'glowing_mandrake' in settlement_lower
                     has_fangtooth = 'fangtooth' in settlement_lower
+                    has_volcanic = 'volcanic' in settlement_lower
                     
                     if has_glowing_mandrake and 'stone_outpost' not in outpost_types:
                         outpost_types.append('stone_outpost')
                     elif has_fangtooth and 'water_outpost' not in outpost_types:
                         outpost_types.append('water_outpost')
-                    elif 'stone_outpost' not in outpost_types and 'water_outpost' not in outpost_types:
+                    elif has_volcanic and 'lava_outpost' not in outpost_types:
+                        outpost_types.append('lava_outpost')
+                    elif 'stone_outpost' not in outpost_types and 'water_outpost' not in outpost_types and 'lava_outpost' not in outpost_types:
                         # Default to water if no specific buildings found
                         outpost_types.append('water_outpost')
         
@@ -415,8 +418,8 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
                                 except:
                                     continue
                         
-                        # Filter out Great Dragon, Water Dragon, and Stone Dragon (exact match, case-insensitive)
-                        dragons_to_filter = ['great dragon', 'water dragon', 'stone dragon', 'great_dragon', 'water_dragon', 'stone_dragon']
+                        # Filter out Great Dragon, Water Dragon, Stone Dragon, and Fire Dragon (exact match, case-insensitive)
+                        dragons_to_filter = ['great dragon', 'water dragon', 'stone dragon', 'fire dragon', 'great_dragon', 'water_dragon', 'stone_dragon', 'fire_dragon']
                         all_troop_types = [t for t in all_troop_types if t.lower() not in dragons_to_filter]
                         
                         # Build row with all troop types, filling missing with 0
@@ -989,10 +992,10 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
                                 # Check if there are coordinates after the type
                                 if '(' in bracket_content:
                                     # Format: "type(x,y)" - extract type before coordinates
-                                    settlement_type = bracket_content.split('(')[0]
+                                    settlement_type = bracket_content.split('(')[0].rstrip(']')
                                 else:
-                                    # Format: "type"
-                                    settlement_type = bracket_content
+                                    # Format: "type]"
+                                    settlement_type = bracket_content.rstrip(']')
                             else:
                                 # Check for format without brackets: "CityName(level)type:["
                                 # Find the last ')' to separate name from type
@@ -1003,6 +1006,22 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
                                     type_part = city_part.rsplit(')', 1)[1].split(':')[0]
                                     if type_part:
                                         settlement_type = type_part
+                            
+                            # Determine outpost subtype based on buildings
+                            outpost_subtype = None
+                            if settlement_type == 'outpost':
+                                has_fangtooth = 'fangtooth' in buildings_str.lower()
+                                has_glowing_mandrake = 'glowing_mandrake' in buildings_str.lower()
+                                has_volcanic = 'volcanic' in buildings_str.lower()
+                                
+                                if has_fangtooth:
+                                    outpost_subtype = 'water_outpost'
+                                elif has_glowing_mandrake:
+                                    outpost_subtype = 'stone_outpost'
+                                elif has_volcanic:
+                                    outpost_subtype = 'lava_outpost'
+                                else:
+                                    outpost_subtype = 'water_outpost'
                             
                             # Parse buildings from the string
                             for building in buildings_str.split(','):
@@ -1015,6 +1034,13 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
                                         # Skip fortresses in outposts (they don't have fortresses)
                                         if settlement_type == 'outpost' and building_name == 'fortress':
                                             continue
+                                        
+                                        # Separate homes by settlement type
+                                        if building_name == 'home':
+                                            if settlement_type == 'city':
+                                                building_name = 'home_city'
+                                            elif outpost_subtype:
+                                                building_name = f'home_{outpost_subtype}'
                                         
                                         player_buildings.append({
                                             'Building': building_name,
@@ -1037,9 +1063,9 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
                                     name_part = settlement_part.split('[')[0]
                                     bracket_content = settlement_part.split('[')[1].rstrip(']')
                                     if '(' in bracket_content:
-                                        settlement_type = bracket_content.split('(')[0]
+                                        settlement_type = bracket_content.split('(')[0].rstrip(']')
                                     else:
-                                        settlement_type = bracket_content
+                                        settlement_type = bracket_content.rstrip(']')
                                 else:
                                     name_part = settlement_part
                                     settlement_type = 'city'
@@ -1054,12 +1080,28 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
                                         name_part = next_part.split('[')[0]
                                         bracket_content = next_part.split('[')[1].rstrip(']')
                                         if '(' in bracket_content:
-                                            settlement_type = bracket_content.split('(')[0]
+                                            settlement_type = bracket_content.split('(')[0].rstrip(']')
                                         else:
-                                            settlement_type = bracket_content
+                                            settlement_type = bracket_content.rstrip(']')
                                     else:
                                         name_part = next_part
                                         settlement_type = 'city'
+                            
+                            # Determine outpost subtype based on buildings
+                            outpost_subtype = None
+                            if settlement_type == 'outpost' and buildings_str:
+                                has_fangtooth = 'fangtooth' in buildings_str.lower()
+                                has_glowing_mandrake = 'glowing_mandrake' in buildings_str.lower()
+                                has_volcanic = 'volcanic' in buildings_str.lower()
+                                
+                                if has_fangtooth:
+                                    outpost_subtype = 'water_outpost'
+                                elif has_glowing_mandrake:
+                                    outpost_subtype = 'stone_outpost'
+                                elif has_volcanic:
+                                    outpost_subtype = 'lava_outpost'
+                                else:
+                                    outpost_subtype = 'water_outpost'
                             
                             if buildings_str:
                                 for building in buildings_str.split(','):
@@ -1070,6 +1112,13 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
                                         
                                         if settlement_type == 'outpost' and building_name == 'fortress':
                                             continue
+                                        
+                                        # Separate homes by settlement type
+                                        if building_name == 'home':
+                                            if settlement_type == 'city':
+                                                building_name = 'home_city'
+                                            elif outpost_subtype:
+                                                building_name = f'home_{outpost_subtype}'
                                         
                                         player_buildings.append({
                                             'Level': level
@@ -1126,9 +1175,27 @@ def render_player_details(selected_name, player_data, latest_data, filtered_df):
                             if not icon_path and building_type.lower().replace(' ', '_') == 'fountain_of_life':
                                 icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Images", "foutain_of_life.webp")
                             
+                            # Handle fire outpost
+                            if not icon_path and building_type.lower().replace(' ', '_') == 'fire_outpost':
+                                icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Images", "fire_outpost.webp")
+                            
+                            # Handle lava outpost
+                            if not icon_path and building_type.lower().replace(' ', '_') == 'lava_outpost':
+                                icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Images", "lava_outpost.webp")
+                            
+                            # Handle home types by settlement
+                            if not icon_path and building_type.lower().replace(' ', '_') == 'home_city':
+                                icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Images", "home.webp")
+                            if not icon_path and building_type.lower().replace(' ', '_') == 'home_water_outpost':
+                                icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Images", "water_outpost_home.webp")
+                            if not icon_path and building_type.lower().replace(' ', '_') == 'home_stone_outpost':
+                                icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Images", "stone_outpost_home.webp")
+                            if not icon_path and building_type.lower().replace(' ', '_') == 'home_lava_outpost':
+                                icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Images", "fire_outpost_home.webp")
+                            
                             # Convert image to base64
                             img_data_url = ""
-                            if os.path.exists(icon_path):
+                            if icon_path and os.path.exists(icon_path):
                                 try:
                                     with open(icon_path, 'rb') as f:
                                         img_data = base64.b64encode(f.read()).decode('utf-8')

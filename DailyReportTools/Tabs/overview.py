@@ -354,6 +354,9 @@ def create_overview_tab(filtered_df):
                                     # Count players with Stone Dragon
                                     if 'stone_dragon' in troops_dict and troops_dict['stone_dragon'] > 0:
                                         dragons_data['stone_dragon'] = dragons_data.get('stone_dragon', 0) + 1
+                                    # Count players with Fire Dragon
+                                    if 'fire_dragon' in troops_dict and troops_dict['fire_dragon'] > 0:
+                                        dragons_data['fire_dragon'] = dragons_data.get('fire_dragon', 0) + 1
                                 except:
                                     pass
                     else:
@@ -364,15 +367,18 @@ def create_overview_tab(filtered_df):
                             dragons_data['water_dragon'] = (pd.to_numeric(player_df['troop_water_dragon'], errors='coerce') > 0).sum()
                         if 'troop_stone_dragon' in player_df.columns:
                             dragons_data['stone_dragon'] = (pd.to_numeric(player_df['troop_stone_dragon'], errors='coerce') > 0).sum()
+                        if 'troop_fire_dragon' in player_df.columns:
+                            dragons_data['fire_dragon'] = (pd.to_numeric(player_df['troop_fire_dragon'], errors='coerce') > 0).sum()
             
             # Dragon image map
             dragon_image_map = {
                 'great_dragon': 'great_dragon.webp',
                 'water_dragon': 'water_dragon.webp',
-                'stone_dragon': 'stone_dragon.webp'
+                'stone_dragon': 'stone_dragon.webp',
+                'fire_dragon': 'fire_dragon.webp'
             }
             
-            dragon_names = ['great_dragon', 'water_dragon', 'stone_dragon']
+            dragon_names = ['great_dragon', 'water_dragon', 'stone_dragon', 'fire_dragon']
             
             # Display dragon tiles in a grid
             cols = st.columns(len(dragon_names))
@@ -403,17 +409,24 @@ def create_overview_tab(filtered_df):
             mandrake_values = []
             mandrake_dates = []
             
+            # Volcanic Rune
+            volcanic_rune_values = []
+            volcanic_rune_dates = []
+            
             for _, row in filtered_df.iterrows():
                 respirator_count = 0
                 mandrake_count = 0
+                volcanic_rune_count = 0
                 
-                # Check resources dictionary for fangtooth and glowing mandrake
+                # Check resources dictionary for fangtooth, glowing mandrake, and volcanic rune
                 if 'resources' in row and isinstance(row['resources'], dict):
                     for resource_name, resource_value in row['resources'].items():
                         if 'fangtooth' in resource_name.lower():
                             respirator_count += resource_value
                         if 'glowing_mandrake' in resource_name.lower() or 'glowing mandrake' in resource_name.lower():
                             mandrake_count += resource_value
+                        if 'volcanic' in resource_name.lower() and 'rune' in resource_name.lower():
+                            volcanic_rune_count += resource_value
                 
                 # Also check raw_player_data for comprehensive format
                 if 'raw_player_data' in row and row['raw_player_data'] is not None:
@@ -424,11 +437,16 @@ def create_overview_tab(filtered_df):
                     # Look for resource_glowing_mandrake column
                     if 'resource_glowing_mandrake' in player_data.columns:
                         mandrake_count += player_data['resource_glowing_mandrake'].fillna(0).sum()
+                    # Look for resource_volcanic_rune column
+                    if 'resource_volcanic_rune' in player_data.columns:
+                        volcanic_rune_count += player_data['resource_volcanic_rune'].fillna(0).sum()
                 
                 respirator_values.append(respirator_count)
                 respirator_dates.append(row['date'])
                 mandrake_values.append(mandrake_count)
                 mandrake_dates.append(row['date'])
+                volcanic_rune_values.append(volcanic_rune_count)
+                volcanic_rune_dates.append(row['date'])
             
             # Filter out leading zeros for fangtooth
             if sum(respirator_values) > 0:
@@ -443,6 +461,13 @@ def create_overview_tab(filtered_df):
                 if first_nonzero_idx is not None and first_nonzero_idx > 0:
                     mandrake_values = [mandrake_values[first_nonzero_idx - 1]] + mandrake_values[first_nonzero_idx:]
                     mandrake_dates = [mandrake_dates[first_nonzero_idx - 1]] + mandrake_dates[first_nonzero_idx:]
+            
+            # Filter out leading zeros for volcanic rune
+            if sum(volcanic_rune_values) > 0:
+                first_nonzero_idx = next((i for i, v in enumerate(volcanic_rune_values) if v > 0), None)
+                if first_nonzero_idx is not None and first_nonzero_idx > 0:
+                    volcanic_rune_values = [volcanic_rune_values[first_nonzero_idx - 1]] + volcanic_rune_values[first_nonzero_idx:]
+                    volcanic_rune_dates = [volcanic_rune_dates[first_nonzero_idx - 1]] + volcanic_rune_dates[first_nonzero_idx:]
             
             # Calculate daily rate function
             def calculate_daily_rate_for_values(values, dates):
@@ -493,6 +518,20 @@ def create_overview_tab(filtered_df):
                 elite_items_data.append({
                     'name': 'Glowing Mandrake',
                     'image': 'glowing_mandrake.webp',
+                    'amount': latest_amount,
+                    'daily_change': daily_change,
+                    'avg_per_player': avg_per_player
+                })
+            
+            # Volcanic Rune data
+            if sum(volcanic_rune_values) > 0:
+                daily_change = calculate_daily_rate_for_values(volcanic_rune_values, volcanic_rune_dates)
+                latest_amount = volcanic_rune_values[-1]
+                latest_players = len(filtered_df.iloc[-1]['raw_player_data']) if 'raw_player_data' in filtered_df.iloc[-1] and filtered_df.iloc[-1]['raw_player_data'] is not None else 0
+                avg_per_player = latest_amount / latest_players if latest_players > 0 else 0
+                elite_items_data.append({
+                    'name': 'Volcanic Rune',
+                    'image': 'volcanic_rune.webp',
                     'amount': latest_amount,
                     'daily_change': daily_change,
                     'avg_per_player': avg_per_player

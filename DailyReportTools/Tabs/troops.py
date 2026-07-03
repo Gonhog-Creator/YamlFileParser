@@ -34,8 +34,8 @@ def render_troops_over_time_chart(filtered_df, latest_data):
             # Create checkboxes for troop selection
             troop_names = [col.replace('troop_', '').replace('_', ' ').title() for col in troop_columns]
             
-            # Filter out Great Dragon, Water Dragon, and Stone Dragon
-            troop_names = [t for t in troop_names if t not in ["Great Dragon", "Water Dragon", "Stone Dragon"]]
+            # Filter out Great Dragon, Water Dragon, Stone Dragon, and Fire Dragon
+            troop_names = [t for t in troop_names if t not in ["Great Dragon", "Water Dragon", "Stone Dragon", "Fire Dragon"]]
             
             st.markdown("**Select troop types to display:**")
             
@@ -74,8 +74,8 @@ def render_troops_over_time_chart(filtered_df, latest_data):
                                 if isinstance(troop_value, str) or troop_name == 'unique_troop_types':
                                     continue
                                 
-                                # Filter out Great Dragon, Water Dragon, and Stone Dragon
-                                if any(dragon in troop_name.lower() for dragon in ['great_dragon', 'water_dragon', 'stone_dragon']):
+                                # Filter out Great Dragon, Water Dragon, Stone Dragon, and Fire Dragon
+                                if any(dragon in troop_name.lower() for dragon in ['great_dragon', 'water_dragon', 'stone_dragon', 'fire_dragon']):
                                     continue
                                 
                                 display_name = troop_name.replace('_', ' ').title()
@@ -240,8 +240,8 @@ def create_troops_tab(filtered_df):
                     troop_columns = [col for col in player_df.columns if col.startswith('troop_') and col != 'unique_troop_types']
                 
                 if troop_columns:
-                    # Filter out Great Dragon, Water Dragon, and Stone Dragon from troop columns
-                    troop_columns = [col for col in troop_columns if not any(dragon in col for dragon in ['great_dragon', 'water_dragon', 'stone_dragon'])]
+                    # Filter out Great Dragon, Water Dragon, Stone Dragon, and Fire Dragon from troop columns
+                    troop_columns = [col for col in troop_columns if not any(dragon in col for dragon in ['great_dragon', 'water_dragon', 'stone_dragon', 'fire_dragon'])]
                     
                     # Parse troop counts from JSON if available
                     if 'troops_json' in player_df.columns:
@@ -418,8 +418,8 @@ def create_troops_tab(filtered_df):
                             for troop_name, troop_value in troops_dict.items():
                                 if isinstance(troop_value, (int, float)) and not isinstance(troop_value, str):
                                     display_name = troop_name.replace('_', ' ').title()
-                                    # Filter out Great Dragon, Water Dragon, and Stone Dragon
-                                    if not any(dragon in troop_name.lower() for dragon in ['great_dragon', 'water_dragon', 'stone_dragon']):
+                                    # Filter out Great Dragon, Water Dragon, Stone Dragon, and Fire Dragon
+                                    if not any(dragon in troop_name.lower() for dragon in ['great_dragon', 'water_dragon', 'stone_dragon', 'fire_dragon']):
                                         row_data[display_name] = troop_value
                         except:
                             pass
@@ -440,8 +440,8 @@ def create_troops_tab(filtered_df):
                             
                             if pd.notna(col_value) and col_value > 0:
                                 troop_name = col.replace('troop_', '').replace('_', ' ').title()
-                                # Filter out Great Dragon, Water Dragon, and Stone Dragon
-                                if not any(dragon in col.lower() for dragon in ['great_dragon', 'water_dragon', 'stone_dragon']):
+                                # Filter out Great Dragon, Water Dragon, Stone Dragon, and Fire Dragon
+                                if not any(dragon in col.lower() for dragon in ['great_dragon', 'water_dragon', 'stone_dragon', 'fire_dragon']):
                                     row_data[troop_name] = col_value
                     
                     # Add total troops to row

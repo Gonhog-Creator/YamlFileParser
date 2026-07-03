@@ -42,7 +42,14 @@ def extract_buildings_data(df):
                                 
                                 # Extract settlement type from format "Name(level)type" or "Name(level)[type]"
                                 if '[' in settlement_info:
-                                    settlement_type = settlement_info.split('[')[1].rstrip(']')
+                                    bracket_content = settlement_info.split('[')[1]
+                                    # Check if there are coordinates after the type
+                                    if '(' in bracket_content:
+                                        # Format: "type(x,y)" - extract type before coordinates
+                                        settlement_type = bracket_content.split('(')[0].rstrip(']')
+                                    else:
+                                        # Format: "type]" or "type"
+                                        settlement_type = bracket_content.rstrip(']')
                                 elif ')' in settlement_info:
                                     # Format: "Name(level)type"
                                     parts = settlement_info.split(')')
@@ -52,6 +59,22 @@ def extract_buildings_data(df):
                                         settlement_type = 'city'
                                 else:
                                     settlement_type = 'city'  # Default to city for old format
+                                
+                                # Determine outpost subtype based on buildings
+                                outpost_subtype = None
+                                if settlement_type == 'outpost':
+                                    has_fangtooth = 'fangtooth' in buildings_str.lower()
+                                    has_glowing_mandrake = 'glowing_mandrake' in buildings_str.lower()
+                                    has_volcanic = 'volcanic' in buildings_str.lower()
+                                    
+                                    if has_fangtooth:
+                                        outpost_subtype = 'water_outpost'
+                                    elif has_glowing_mandrake:
+                                        outpost_subtype = 'stone_outpost'
+                                    elif has_volcanic:
+                                        outpost_subtype = 'lava_outpost'
+                                    else:
+                                        outpost_subtype = 'water_outpost'  # Default to water
                                 
                                 # Parse buildings from the string
                                 if buildings_str:
@@ -65,12 +88,23 @@ def extract_buildings_data(df):
                                             if settlement_type == 'outpost' and building_name == 'fortress':
                                                 continue
                                             
+                                            # Separate homes by settlement type
+                                            if building_name == 'home':
+                                                if settlement_type == 'city':
+                                                    building_key = 'home_city'
+                                                elif outpost_subtype:
+                                                    building_key = f'home_{outpost_subtype}'
+                                                else:
+                                                    building_key = 'home'
+                                            else:
+                                                building_key = building_name
+                                            
                                             # Track both unique players and total instances
-                                            if building_name not in buildings_data:
-                                                buildings_data[building_name] = {'players': set(), 'levels': [], 'total_instances': 0}
-                                            buildings_data[building_name]['players'].add(row['account_id'])  # Track unique player
-                                            buildings_data[building_name]['total_instances'] += 1  # Count all instances
-                                            buildings_data[building_name]['levels'].append(level)  # Keep levels for distribution
+                                            if building_key not in buildings_data:
+                                                buildings_data[building_key] = {'players': set(), 'levels': [], 'total_instances': 0}
+                                            buildings_data[building_key]['players'].add(row['account_id'])  # Track unique player
+                                            buildings_data[building_key]['total_instances'] += 1  # Count all instances
+                                            buildings_data[building_key]['levels'].append(level)  # Keep levels for distribution
                     elif isinstance(buildings_metadata, dict):
                         # Handle dict format
                         for city_info in buildings_metadata.values():
@@ -149,6 +183,10 @@ def create_buildings_tab(filtered_df):
                     'glowing_mandrake_cache': 'glowing_mandrake_cache.webp',
                     'glowing_mandrake_factory': 'glowing_mandrake_factory.webp',
                     'home': 'home.webp',
+                    'home_city': 'home.webp',
+                    'home_water_outpost': 'water_outpost_home.webp',
+                    'home_stone_outpost': 'stone_outpost_home.webp',
+                    'home_lava_outpost': 'fire_outpost_home.webp',
                     'lumbermill': 'lumbermill.webp',
                     'metalsmith': 'metalsmith.webp',
                     'mine': 'mine.webp',
@@ -159,6 +197,8 @@ def create_buildings_tab(filtered_df):
                     'sentinel': 'sentinel.webp',
                     'storage_vault': 'storage_vault.webp',
                     'theater': 'theater.webp',
+                    'volcanic_rune_cache': 'volcanic_rune_cache.webp',
+                    'volcanic_rune_factory': 'volcanic_rune_factory.webp',
                     'wall': 'wall.webp'
                 }
                 

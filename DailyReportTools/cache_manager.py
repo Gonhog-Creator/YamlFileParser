@@ -169,14 +169,14 @@ class CacheManager:
                             
                             # Extract settlement type from format "Name(level)type" or "Name(level)[type]" or "Name(level)[type](x,y)"
                             if '[' in settlement_info:
-                                bracket_content = settlement_info.split('[')[1].rstrip(']')
+                                bracket_content = settlement_info.split('[')[1]
                                 # Check if there are coordinates after the type
                                 if '(' in bracket_content:
                                     # Format: "type(x,y)" - extract type before coordinates
-                                    settlement_type = bracket_content.split('(')[0]
+                                    settlement_type = bracket_content.split('(')[0].rstrip(']')
                                 else:
-                                    # Format: "type"
-                                    settlement_type = bracket_content
+                                    # Format: "type]" or "type"
+                                    settlement_type = bracket_content.rstrip(']')
                             elif ')' in settlement_info:
                                 # Format: "Name(level)type"
                                 parts = settlement_info.split(')')
@@ -186,6 +186,22 @@ class CacheManager:
                                     settlement_type = 'city'
                             else:
                                 settlement_type = 'city'  # Default to city for old format
+                            
+                            # Determine outpost subtype based on buildings
+                            outpost_subtype = None
+                            if settlement_type == 'outpost':
+                                has_fangtooth = 'fangtooth' in buildings_str.lower()
+                                has_glowing_mandrake = 'glowing_mandrake' in buildings_str.lower()
+                                has_volcanic = 'volcanic' in buildings_str.lower()
+                                
+                                if has_fangtooth:
+                                    outpost_subtype = 'water_outpost'
+                                elif has_glowing_mandrake:
+                                    outpost_subtype = 'stone_outpost'
+                                elif has_volcanic:
+                                    outpost_subtype = 'lava_outpost'
+                                else:
+                                    outpost_subtype = 'water_outpost'  # Default to water
                             
                             # Parse buildings from the string
                             if buildings_str:
@@ -199,12 +215,23 @@ class CacheManager:
                                         if settlement_type == 'outpost' and building_name == 'fortress':
                                             continue
                                         
+                                        # Separate homes by settlement type
+                                        if building_name == 'home':
+                                            if settlement_type == 'city':
+                                                building_key = 'home_city'
+                                            elif outpost_subtype:
+                                                building_key = f'home_{outpost_subtype}'
+                                            else:
+                                                building_key = 'home'
+                                        else:
+                                            building_key = building_name
+                                        
                                         # Track both unique players and total instances
-                                        if building_name not in building_stats:
-                                            building_stats[building_name] = {'players': set(), 'levels': [], 'total_instances': 0}
-                                        building_stats[building_name]['players'].add(player['account_id'])  # Track unique player
-                                        building_stats[building_name]['total_instances'] += 1  # Count all instances
-                                        building_stats[building_name]['levels'].append(level)  # Keep levels for distribution
+                                        if building_key not in building_stats:
+                                            building_stats[building_key] = {'players': set(), 'levels': [], 'total_instances': 0}
+                                        building_stats[building_key]['players'].add(player['account_id'])  # Track unique player
+                                        building_stats[building_key]['total_instances'] += 1  # Count all instances
+                                        building_stats[building_key]['levels'].append(level)  # Keep levels for distribution
                 elif isinstance(buildings_metadata, dict):
                     # Handle dict format
                     for city_info in buildings_metadata.values():

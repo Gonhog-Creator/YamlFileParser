@@ -19,7 +19,11 @@ SKIN_NAME_MAPPING = {
     'skin_avatar_border_hanami(avatar_border)': 'Hanami Avatar Border',
     'skin_avatar_stone_pack(avatar_border)': 'Stone Pack Avatar Border',
     'skin_stone_pack_fortress(building)': 'Stone Pack Fortress',
-    'kin_avatar_border_stone_pack(avatar_border)': 'Stone Pack Avatar Border',
+    'skin_avatar_border_stone_pack(avatar_border)': 'Stone Pack Avatar Border',
+    'skin_fire_pack_fortress(building)': 'Fire Pack Fortress',
+    'skin_fire_pack_avatar_border(avatar_border)': 'Fire Pack Avatar Border',
+    'skin_city_summer(building)': 'City Summer',
+    'skin_avatar_border_summer(avatar_border)': 'Summer Avatar Border',
 }
 
 def get_common_skin_name(json_name):
@@ -144,6 +148,10 @@ def create_skins_tab(filtered_df):
                             'Stone Pack Fortress': 'skin_stone_pack_fortress.webp',
                             'skin_demon_tower_fortress(building)': 'skin_demon_tower_fortress.webp',
                             'skin_avatar_border_demon_tower(avatar_border)': 'skin_avatar_border_demon_tower.webp',
+                            'Fire Pack Fortress': 'skin_fire_pack_fortress.webp',
+                            'Fire Pack Avatar Border': 'skin_fire_pack_avatar_border.webp',
+                            'City Summer': 'skin_city_summer.webp',
+                            'Summer Avatar Border': 'skin_avatar_border_summer.webp',
                         }
                         
                         # Sort skins by player count
