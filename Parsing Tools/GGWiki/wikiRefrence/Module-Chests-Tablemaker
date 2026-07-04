@@ -1,0 +1,135 @@
+local p = {}
+local chests = mw.loadData("Module:Chests/data")
+
+-- Format percentage
+local function fmtPercentage(weight, totalWeight)
+    if not weight or not totalWeight or totalWeight == 0 then return "0%" end
+    return string.format("%.2f%%", (weight / totalWeight) * 100)
+end
+
+-- Normalize chest name
+local function normalizeName(name)
+    if not name then return nil end
+    name = mw.text.trim(name)
+    local searchName = mw.ustring.lower(name)
+    
+    for k, v in pairs(chests) do
+        if mw.ustring.lower(k) == searchName then
+            return k
+        end
+    end
+    return nil
+end
+
+-- Get chest data by name
+local function getChest(name)
+    local data = chests[name]
+    if not data then
+        for k, v in pairs(chests) do
+            if mw.ustring.lower(k) == mw.ustring.lower(name) then
+                return v, k
+            end
+        end
+    end
+    return data, name
+end
+
+-- Summary table of all chests
+function p.summaryTable(frame)
+    local out = {}
+    table.insert(out, '{| class="wikitable sortable"')
+    table.insert(out, "! !! Chest !! ID !! Pool ID !! Rewards")
+    
+    for name, data in pairs(chests) do
+        table.insert(out, "|-")
+        table.insert(out, "| [[" .. name .. "]]")
+        table.insert(out, "| " .. data.id)
+        table.insert(out, "| " .. data.pool_id)
+        table.insert(out, "| " .. #data.rewards)
+    end
+    
+    table.insert(out, "|}")
+    return table.concat(out, "\n")
+end
+
+-- Detailed loot table for a specific chest
+function p.lootTable(frame)
+    local args = frame.args or {}
+    local name = args[1] or args.name
+    if not name then return "Error: No chest name provided" end
+    
+    local data, canonicalName = getChest(name)
+    if not data then return "Error: Chest '" .. name .. "' not found" end
+    
+    -- Calculate total weight
+    local totalWeight = 0
+    for _, reward in ipairs(data.rewards) do
+        totalWeight = totalWeight + reward.weight
+    end
+    
+    local out = {}
+    table.insert(out, '{| class="wikitable sortable"')
+    table.insert(out, "|+ Loot Table for " .. canonicalName)
+    table.insert(out, "! Item !! Amount !! Weight !! Chance")
+    
+    for _, reward in ipairs(data.rewards) do
+        local chance = fmtPercentage(reward.weight, totalWeight)
+        table.insert(out, "|-")
+        table.insert(out, "| [[" .. reward.name .. "]]")
+        table.insert(out, "| " .. reward.amount)
+        table.insert(out, "| " .. reward.weight)
+        table.insert(out, "| " .. chance)
+    end
+    
+    table.insert(out, "|}")
+    return table.concat(out, "\n")
+end
+
+-- Simple loot list for a specific chest
+function p.lootList(frame)
+    local args = frame.args or {}
+    local name = args[1] or args.name
+    if not name then return "Error: No chest name provided" end
+    
+    local data, canonicalName = getChest(name)
+    if not data then return "Error: Chest '" .. name .. "' not found" end
+    
+    local out = {}
+    if data.rewards and #data.rewards > 0 then
+        table.insert(out, ";Possible rewards:")
+        for _, reward in ipairs(data.rewards) do
+            local amountStr = reward.amount > 1 and " x" .. reward.amount or ""
+            table.insert(out, ": [[" .. reward.name .. "]]" .. amountStr)
+        end
+    else
+        table.insert(out, "No rewards found for this chest.")
+    end
+    
+    return table.concat(out, "\n")
+end
+
+-- Metadata table for a specific chest
+function p.metadataTable(frame)
+    local args = frame.args or {}
+    local name = args[1] or args.name
+    if not name then return "Error: No chest name provided" end
+    
+    local data, canonicalName = getChest(name)
+    if not data then return "Error: Chest '" .. name .. "' not found" end
+    
+    local out = {}
+    table.insert(out, '{| class="wikitable"')
+    table.insert(out, "|+ Chest Metadata")
+    table.insert(out, "! Property !! Value")
+    table.insert(out, "|-")
+    table.insert(out, "| Chest ID || " .. data.id)
+    table.insert(out, "|-")
+    table.insert(out, "| Loot Pool ID || " .. data.pool_id)
+    table.insert(out, "|-")
+    table.insert(out, "| Number of Rewards || " .. #data.rewards)
+    table.insert(out, "|}")
+    
+    return table.concat(out, "\n")
+end
+
+return p

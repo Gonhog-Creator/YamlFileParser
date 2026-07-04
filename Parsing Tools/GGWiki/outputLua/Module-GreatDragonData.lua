@@ -1,0 +1,70 @@
+return {
+    ["Great Dragon"] = {
+        id = 1,
+        name = "Great Dragon",
+        max_level = 11,
+        description= "The Great Dragon is the protector of your [[City]] and its growth allows it to expand, [[Research]] and train [[Troops]] while protected by its watchfull eyes. This is the most common species of dragons left, while others previously thought extinct are being rediscovered, it's the best choice to build a strong foundation for an empire and as such it lives in the [[Dragon Keep]] inside your [[City]].",
+        descriptionTech = "The Great Dragon is the first main dragon available to players in Rise of Atlantis and serves as a foundation of early dragon progression. Hatched and raised by upgrading the [[Dragon Keep]], it introduces players to the core dragon growth system. At lower levels, Great Dragon does little else than look cute. Upon reaching Level 8, it gains the ability to enter battle alongside an army, marking the player's first access to direct dragon-led combat and allows to search for the eggs of the other dragons. When equipped with [[Dragon Armor]], Great Dragon's combat effectiveness increases significantly. The Great Dragon can be upgraded to level 10. Although it is eventually surpassed by higher-tier dragons, Great Dragon remains a critical early-game asset. Proper development and time investment can substantially improve early PvE performance, wild capture efficiency, and introductory PvP engagements. This page covers Great Dragon's growth requirements and armor set. The Great Dragon can be sent into battle a total number of times as the level of [[Draconic Wisdom]] before requiring a period of rest determined by the same research.",
+        found_in = "Main City",
+        images = {
+            baby = "Greatdragonbaby.webp",
+            adolescent = "Greatdragonadolescent.webp",
+            adult = "Greatdragonadult.webp",
+            armored = "Greatdragonarmored.webp"
+        },
+        armor_variations = {
+		    { name = "Normal Armor", file = "Greatdragonarmored.webp" }
+		}
+    },
+    ["Fire Dragon"] = {
+        id = 2,
+        name = "Fire Dragon",
+        max_level = 12,
+        description= "The Fire Dragon was once thought to be a myth, but when [[Great Dragon|Great Dragons]] began searching in the depths of [[Mountain|Mountains]], ancient eggs ready to hatch were discovered. It's best to use him to guard a [[Fire Outpost]] built on a [[Mountain]], its growth determines the growth of your new [[Outposts|Outpost]]. You can pay a visit to him in the [[Dragon Keep]] present in the [[Fire Outpost]]. Fierce and destructive, it becomes even more terrifying once equipped with its armor.",
+        descriptionTech = "The Fire Dragon is the heart of your [[Fire Outpost]], and is the source of its power. Hatched from a rare egg only found in the deadly depths of [[Mountain|Mountains]], it unlocks a new chapter in your Empire: the ability to control a [[Mountain]] of your own and create a [[Fire Outpost]]. Within your new expansion, you can train [[Lava Jaw|Lava Jaws]], generate [[Volcanic Runes|Volcanic Runes]], and increase your army size. Search high level [[Mountain|Mountains]] with your [[Dragons]] to find its elusive battle armor. When the set is complete, your Fire Dragon can hunt the lands of Atlantis by your side. The Fire Dragon can be sent into battle a total number of times as the level of [[Draconic Wisdom]] before requiring a period of rest determined by the same research.",
+        found_in = "[[Fire Outpost]]",
+        images = {
+            baby = "Firedragonbaby.webp",
+            adolescent = "Firedragonadolescent.webp",
+            adult = "Firedragonadult.webp",
+            armored = "Firedragonarmored.webp"
+        },
+        armor_variations = {
+		    { name = "Normal Armor", file = "Firedragonarmored.webp" }
+		}
+    },
+    ["Water Dragon"] = {
+        id = 3,
+        name = "Water Dragon",
+        max_level = 12,
+        description= "The Water Dragon was previously thought exinct, but once [[Great Dragon|Great Dragons]] started searching in deep [[Lake|Lakes]], ancient eggs ready to hatch were found, with great joy. It's best to use him to guard a [[Water Outpost]] built on a [[Lake]], its growth determines the growth of your new [[Outposts|Outpost]]. You can pay a visit to him in the [[Dragon Keep]] present in the [[Water Outpost]]. Fast and deadly it becomes even more of a nightmare once equipped with its armor.",
+        descriptionTech = "The Water Dragon is the heart of your [[Water Outpost]], and is the source of it's power. Hatched from a rare egg only found in deadly [[Lake|Lakes]], it unlocks a new chapter in your Empire: the ability to control a [[Lake]] of your own and create a [[Water Outpost]]. Within your new expansion, you can train [[Fangtooth|Fangtooths]], generate [[Fangtooth Respirator|Fangtooth Respirators]], and increase your army size. Search high level [[Lake|Lakes]] with your [[Great Dragon]] to find it's elusive battle armor. When the set is complete, your Water Dragon can hunt the lands of Atlantis by your side. The Water Dragon can be sent into battle a total number of times as the level of [[Draconic Wisdom]] before requiring a period of rest determined by the same research.",
+        found_in = "[[Water Outpost]]",
+        images = {
+            baby = "Waterdragonbaby.webp",
+            adolescent = "Waterdragonadolescent.webp",
+            adult = "Waterdragonadult.webp",
+            armored = "Waterdragonarmored.webp"
+        },
+        armor_variations = {
+		    { name = "Normal Armor", file = "Waterdragonarmored.webp" }
+		}
+    },
+    ["Stone Dragon"] = {
+        id = 4,
+        name = "Stone Dragon",
+        max_level = 12,
+        description= "Once thought lost in time, other [[Dragons]] found eggs of this species in deep caves inside [[Hill|Hills]]. Strong and with hard scales, it looks over your [[Stone Outpost]], allowing it to grow with it. Once equipped with its armor, it can start terrorising your enemy alongside your army!",
+        descriptionTech = "The Stone Dragon is the heart of your [[Stone Outpost]], and is the source of it's power. Hatched from a rare egg only found in the depths of [[Hill|Hills]], it unlocks a new chapter in your Empire: the ability to control a [[Hill]] of your own and create a [[Stone Outpost]]. Within your new expansion, you can train [[Franite Ogre|Granite Ogres]], generate [[Glowing Mandrake|Glowing Mandrakes]], and increase your army size. Search high level [[Hill|Hills]] with your [[Dragons]] to find it's elusive battle armor. When the set is complete, your Stone Dragon can hunt the lands of Atlantis by your side. The Stone Dragon can be sent into battle a total number of times as the level of [[Draconic Wisdom]] before requiring a period of rest determined by the same research.",
+        found_in = "Stone Outpost",
+        images = {
+            baby = "Stonedragonbaby.webp",
+            adolescent = "Stonedragonadolescent.webp",
+            adult = "Stonedragonadult.webp",
+            armored = "Stonedragonarmored.webp"
+        },
+        armor_variations = {
+		    { name = "Normal Armor", file = "Stonedragonarmored.webp" }
+		}
+    },
+}

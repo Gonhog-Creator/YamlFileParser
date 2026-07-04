@@ -1,0 +1,53 @@
+local p = {}
+local data = mw.loadData("Module:GreatDragon/data")
+
+local function findDragon(name)
+    if data[name] then return data[name] end
+    for k,v in pairs(data) do
+        if mw.ustring.lower(k) == mw.ustring.lower(name) then
+            return v
+        end
+    end
+    return nil
+end
+
+function p.getTileImage(frame)
+    local name = frame.args[1]
+    local stage = frame.args.stage
+
+    if not name or not stage then return "" end
+
+    local dragon = findDragon(name)
+    if not dragon then return "" end
+
+    if not dragon.images then return "" end
+
+    local img = dragon.images[stage]
+    if not img then return "" end
+
+    return img  -- must be filename only for <image>
+end
+
+function p.getField(frame)
+    local name = frame.args[1]
+    local field = frame.args[2]
+
+    if not name or not field then return "" end
+
+    local dragon = findDragon(name)
+    if not dragon then return "" end
+
+    return dragon[field] or ""
+end
+
+function p.getMaxLevel(frame)
+    local name = frame.args[1]
+    if not name then return "" end
+
+    local dragon = findDragon(name)
+    if not dragon then return "" end
+
+    return dragon.max_level or ""
+end
+
+return p

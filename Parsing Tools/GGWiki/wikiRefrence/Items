@@ -1,0 +1,38 @@
+[[Items]] are objects that can be collected which have various purposes from earning [[Resources]] to [[Training]] troops.
+
+== City Items ==
+{{#invoke:Items/Tablemaker|makeTable|City Items}}
+
+== Consumable Resources ==
+{{#invoke:Items/Tablemaker|makeTable|Consumable Resource}}
+
+== Building Items ==
+{{#invoke:Items/Tablemaker|makeTable|Building Item}}
+
+== Elite Items ==
+{{#invoke:Items/Tablemaker|makeTable|Elite Items}}
+
+== Demon Tower Items ==
+{{#invoke:Items/Tablemaker|makeTable|Demon Tower Items}}
+
+== Chests ==
+{{#invoke:Items/Tablemaker|makeTable|Chests}}
+
+== Time Skips ==
+{{#invoke:Items/Tablemaker|makeTable|Time Skip}}
+
+== March Speed Boosts ==
+{{#invoke:Items/Tablemaker|makeTable|March Speed Boosts}}
+
+== Training Speed Boosts ==
+{{#invoke:Items/Tablemaker|makeTable|Training Speed Boosts}}
+
+== Dragon Armor ==
+{{#invoke:Items/Tablemaker|makeTable|Dragon Armor}}
+
+<!--
+== Revival Time Speed Boosts ==
+{{#invoke:Items/Tablemaker|makeTable|Revival Time Speed Boosts}}
+-->
+
+[[Category:Content]]

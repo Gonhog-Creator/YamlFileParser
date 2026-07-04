@@ -1,0 +1,387 @@
+local p = {}
+
+local data = mw.loadData("Module:Buildings/data")
+
+-- Normalize building key ? canonical ID
+local function normalizeName(name)
+	if not name then return nil end
+	name = mw.text.trim(name)
+	-- Convert to lowercase for comparison
+	local searchName = mw.ustring.lower(name)
+
+	for k, v in pairs(data) do
+		if mw.ustring.lower(k) == searchName then
+			return k
+		end
+	end
+	return nil
+end
+
+-- Public: return canonical name
+function p.getCanonicalName(frame)
+	local name = frame.args[1]
+	return normalizeName(name) or ""
+end
+
+-- Public: get a field for a building
+function p.getField(frame)
+	local name = normalizeName(frame.args.name or frame.args[1])
+	local field = frame.args.field
+
+	if not name or not field then
+		return ""
+	end
+
+	local b = data[name]
+	if not b then
+		return ""
+	end
+
+	return b[field] or ""
+end
+
+-- Public: max level
+function p.getMaxLevel(frame)
+	local name = normalizeName(frame.args[1])
+	if not name then return "" end
+	return data[name].max_level or ""
+end
+
+-- Public: image (returns first available image for infobox)
+function p.getImage(frame)
+	local name = normalizeName(frame.args[1])
+	if not name then return "" end
+
+	local buildingData = data[name]
+	if not buildingData then return "" end
+
+	-- Check for image override in building data first
+	if buildingData.image_override then
+		return string.format('[[File:%s|32px]]', buildingData.image_override)
+	end
+
+	-- Use properly formatted name for automatic image search
+	local base = name:gsub("_", " ")
+	base = base:gsub("(%a)([%w]*)", function(first, rest)
+		return mw.ustring.upper(first) .. rest
+	end)
+
+	-- Check for .webp file first (like Tablemaker)
+	local t = mw.title.new("File:" .. base .. ".webp")
+	if t and t.exists then
+		return string.format('[[File:%s.webp|32px]]', base)
+	end
+
+	-- Check for numbered variants (return first one found)
+	for i = 1, 20 do
+		local t2 = mw.title.new("File:" .. base .. i .. ".webp")
+		if t2 and t2.exists then
+			return string.format('[[File:%s%d.webp|32px]]', base, i)
+		end
+	end
+
+	-- Fallback to .png
+	return string.format('[[File:%s.png|32px]]', base)
+end
+
+-- Public: image switcher (returns full HTML/JS for switching)
+function p.getImageSwitcher(frame)
+	local name = normalizeName(frame.args[1])
+	if not name then return "" end
+
+	local buildingData = data[name]
+	if not buildingData then return "" end
+
+	-- Check for image override in building data first
+	if buildingData.image_override then
+		return string.format('[[File:%s|100px]]', buildingData.image_override)
+	end
+
+	-- Use properly formatted name for automatic image search
+	local base = name:gsub("_", " ")
+	base = base:gsub("(%a)([%w]*)", function(first, rest)
+		return mw.ustring.upper(first) .. rest
+	end)
+
+	-- Check for .webp file first (like Tablemaker)
+	local t = mw.title.new("File:" .. base .. ".webp")
+	if t and t.exists then
+		return string.format('[[File:%s.webp|100px]]', base)
+	end
+
+	-- Find all numbered variants that exist
+	local variants = {}
+	for i = 1, 20 do  -- Check up to 20 variants
+		local t2 = mw.title.new("File:" .. base .. i .. ".webp")
+		if t2 and t2.exists then
+			table.insert(variants, i)
+		end
+	end
+
+	if #variants > 0 then
+		-- Create switcher for multiple variants
+		local switcher = {}
+		table.insert(switcher, '<div class="image-switcher">')
+
+		-- Add buttons for each variant
+		for i, variant in ipairs(variants) do
+			local activeClass = (i == 1) and " active" or ""
+			table.insert(switcher, string.format('<button class="switcher-btn%s" data-variant="%d">%d</button>', activeClass, variant, variant))
+		end
+
+		-- Add images (all hidden except first)
+		for i, variant in ipairs(variants) do
+			local displayStyle = (i == 1) and "" or ' style="display:none"'
+			table.insert(switcher, string.format('<div class="image-variant"%s>[[File:%s%d.webp|100px]]</div>', displayStyle, base, variant))
+		end
+
+		table.insert(switcher, '</div>')
+
+		-- Add JavaScript for switching
+		local js = [[
+		<script>
+		(function() {
+			const switchers = document.querySelectorAll('.image-switcher');
+			switchers.forEach(switcher => {
+				const buttons = switcher.querySelectorAll('.switcher-btn');
+				const images = switcher.querySelectorAll('.image-variant');
+
+				buttons.forEach((btn, index) => {
+					btn.addEventListener('click', () => {
+						// Hide all images
+						images.forEach(img => img.style.display = 'none');
+						// Remove active class from all buttons
+						buttons.forEach(b => b.classList.remove('active'));
+						// Show selected image and activate button
+						images[index].style.display = '';
+						btn.classList.add('active');
+					});
+				});
+			});
+		})();
+		</script>
+		]]
+
+		return table.concat(switcher, "") .. js
+	else
+		-- Fallback to .png if no numbered variants found
+		return string.format('[[File:%s.png|100px]]', base)
+	end
+end
+
+-- Public: wikilink
+function p.getLink(frame)
+	local name = normalizeName(frame.args[1])
+	if not name then return "" end
+	local label = name:gsub("_", " ")
+	return string.format("[[%s|%s]]", name, label)
+end
+
+-- Format seconds into h/m/s
+local function fmtTime(seconds)
+    if not seconds then return "" end
+    local h = math.floor(seconds / 3600)
+    local m = math.floor((seconds % 3600) / 60)
+    local s = seconds % 60
+    if h > 0 then
+        return string.format("%dh %dm %ds", h, m, s)
+    elseif m > 0 then
+        return string.format("%dm %ds", m, s)
+    else
+        return string.format("%ds", s)
+    end
+end
+
+-- Format item requirements list
+local function formatItems(items)
+    if not items then return "" end
+    local parts = {}
+    for item, count in pairs(items) do
+        -- Normalize item name: convert snake_case to Title Case
+        local displayName = item:gsub("_", " ")
+        displayName = displayName:gsub("(%a)([%w]*)", function(first, rest)
+            return mw.ustring.upper(first) .. rest
+        end)
+        table.insert(parts, count .. "× [[" .. displayName .. "]]")
+    end
+    return table.concat(parts, "<br>")
+end
+
+-- Gather all unique unlock columns across all levels
+local function gatherUnlockColumns(buildingData)
+    local columns = {}
+    local seen = {}
+    for lvl = 1, buildingData.max_level do
+        local unlock = buildingData.unlocks[lvl] or {}
+        for k,_ in pairs(unlock) do
+            if not seen[k] then
+                table.insert(columns, k)
+                seen[k] = true
+            end
+        end
+    end
+    for i, col in ipairs(columns) do
+        columns[i] = col:gsub("_"," "):gsub("^%l", string.upper)
+    end
+    return columns
+end
+
+-- Format unlock cell for a given column
+local function fmtUnlockCell(unlock, columnName)
+    local key = columnName:lower():gsub(" ","_")
+    local val = unlock[key]
+    if not val then return "" end
+    if key == "troops" and type(val) == "table" then
+        return table.concat(val, ", ")
+    end
+    return tostring(val)
+end
+
+-- Public: requirements table
+function p.requirementsTable(frame)
+    local name = normalizeName(frame.args.name or frame.args[1])
+    if not name then return "" end
+    local buildingData = data[name]
+    if not buildingData then return "" end
+
+    local out = {}
+    table.insert(out, '{| class="wikitable sortable"')
+    table.insert(out, "! Level !! Food !! Lumber !! Metal !! Stone !! Gold !! Items !! Build Time")
+
+    for lvl = 1, buildingData.max_level do
+        local req = buildingData.requirements[lvl] or {}
+        table.insert(out, "|-")
+        table.insert(out, "| " .. lvl)
+        table.insert(out, "| " .. (req.food or ""))
+        table.insert(out, "| " .. (req.lumber or ""))
+        table.insert(out, "| " .. (req.metal or ""))
+        table.insert(out, "| " .. (req.stone or ""))
+        table.insert(out, "| " .. (req.gold or ""))
+        table.insert(out, "| " .. formatItems(req.items))
+        table.insert(out, "| " .. fmtTime(req.build_time))
+    end
+
+    table.insert(out, "|}")
+    return table.concat(out, "\n")
+end
+
+-- Public: unlocks table
+function p.unlocksTable(frame)
+    local name = normalizeName(frame.args.name or frame.args[1])
+    if not name then return "" end
+    local buildingData = data[name]
+    if not buildingData then return "" end
+
+    local unlockCols = gatherUnlockColumns(buildingData)
+    local out = {}
+    table.insert(out, '{| class="wikitable sortable"')
+    table.insert(out, "! Level")
+    for _, col in ipairs(unlockCols) do
+        table.insert(out, "! " .. col)
+    end
+
+    for lvl = 1, buildingData.max_level do
+        local unlock = buildingData.unlocks[lvl] or {}
+        table.insert(out, "|-")
+        table.insert(out, "| " .. lvl)
+        for _, col in ipairs(unlockCols) do
+            table.insert(out, "| " .. fmtUnlockCell(unlock, col))
+        end
+    end
+
+    table.insert(out, "|}")
+    return table.concat(out, "\n")
+end
+
+-- Local variations types to search for
+local localVariations = {"zolmec", "primus", "water_outpost", "stone_outpost", "fire_outpost"}
+
+-- Extract outpost type from variation filename
+local function getOutpostType(variation)
+    if variation:match("^water_outpost") then return "Water Outpost"
+    elseif variation:match("^stone_outpost") then return "Stone Outpost"
+    elseif variation:match("^fire_outpost") then return "Fire Outpost"
+    elseif variation:match("^garrison_water") then return "Water Outpost"
+    elseif variation:match("^garrison_stone") then return "Stone Outpost"
+    elseif variation:match("^garrison_fire") then return "Fire Outpost"
+    else return "Other" end
+end
+
+-- Public: variations table
+function p.variationsTable(frame)
+    local name = normalizeName(frame.args.name or frame.args[1])
+    local showNames = frame.args.show_names or frame.args.showNames
+    if not name then return "" end
+    local buildingData = data[name]
+    if not buildingData then return "" end
+
+    -- Only show variations defined in building data
+    if buildingData.variations then
+        -- Group variations by outpost type
+        local grouped = {}
+        for _, var in pairs(buildingData.variations) do
+            local outpostType = getOutpostType(var)
+            if not grouped[outpostType] then
+                grouped[outpostType] = {}
+            end
+            table.insert(grouped[outpostType], var)
+        end
+
+        -- Special case: add city variations for home building
+        if mw.ustring.lower(name) == "home" then
+            grouped["City"] = {"Home1.webp", "Home2.webp", "Home3.webp"}
+        end
+
+        -- Determine columns based on outpost types present
+        local columns = {}
+        for outpostType, _ in pairs(grouped) do
+            table.insert(columns, outpostType)
+        end
+        table.sort(columns)
+
+        if #columns == 0 then
+            return ""
+        end
+
+        local out = {}
+        table.insert(out, '{| class="wikitable sortable"')
+        table.insert(out, "! " .. table.concat(columns, " !! "))
+
+        -- Find max number of variations in any column
+        local maxRows = 0
+        for _, vars in pairs(grouped) do
+            if #vars > maxRows then maxRows = #vars end
+        end
+
+        -- Build rows
+        for row = 1, maxRows do
+            table.insert(out, "|-")
+            for _, col in ipairs(columns) do
+                local vars = grouped[col]
+                if vars and vars[row] then
+                    local var = vars[row]
+                    if showNames then
+                        -- Normalize variation name: convert snake_case to Title Case, remove .webp
+                        local displayName = var:gsub("%.webp$", "")
+                        displayName = displayName:gsub("_", " ")
+                        displayName = displayName:gsub("(%a)([%w]*)", function(first, rest)
+                            return mw.ustring.upper(first) .. rest
+                        end)
+                        table.insert(out, "| " .. displayName .. "<br>[[File:" .. var .. "|100px|100px]]")
+                    else
+                        table.insert(out, "| [[File:" .. var .. "|100px|100px]]")
+                    end
+                else
+                    table.insert(out, "|")
+                end
+            end
+        end
+
+        table.insert(out, "|}")
+        return table.concat(out, "\n")
+    end
+
+    return ""
+end
+
+return p

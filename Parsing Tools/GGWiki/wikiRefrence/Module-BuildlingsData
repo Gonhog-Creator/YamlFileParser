@@ -70,7 +70,6 @@ local buildings = {
 		max_level = 10,
 		location = "city",
 		description = "The industrial complex that drives progress, unlocks some troops and ability to research [[Mercantilism]].",
-		location = "city",
 		requirements = {
 			[1] = {food = 150, lumber = 1500, metal = 1500, stone = 500, build_time = 9 * 60},
 			[2] = {food = 300, lumber = 3000, metal = 3000, stone = 1000, build_time = 9 * 60 * 2^1},
@@ -102,7 +101,6 @@ local buildings = {
 		max_level = 10,
 		location = "city",
 		description = "Where troops are trained, unlocks troops and ability to research [[Metallurgy]].",
-		location = "city",
 		requirements = {
 			[1] = {food = 250, lumber = 1200, metal = 500, stone = 1500, build_time = 5 * 60},
 			[2] = {food = 500, lumber = 2400, metal = 1000, stone = 3000, build_time = 5 * 60 * 2^1},
@@ -134,7 +132,6 @@ local buildings = {
 		max_level = 10,
 		location = "city",
 		description = "Living space of your citizens, increases population.",
-		location = "city",
 		requirements = {
 			[1] = {food = 250, lumber = 1200, metal = 500, stone = 1500, build_time = 10},
 			[2] = {food = 500, lumber = 2400, metal = 1000, stone = 3000, build_time = 20},
@@ -166,7 +163,6 @@ local buildings = {
 		max_level = 10,
 		location = "city",
 		description = "The forge feeding your factories, unlocks some troops and ability to research [[Metallurgy]].",
-		location = "city",
 		requirements = {
 			[1] = {food = 125, lumber = 1000, metal = 1200, stone = 600, build_time = 3 * 60},
 			[2] = {food = 250, lumber = 2000, metal = 2400, stone = 1200, build_time = 3 * 60 * 2^1},
@@ -198,7 +194,6 @@ local buildings = {
 		max_level = 10,
 		location = "city",
 		description = "Home of Oracles, gives an increasing amount of information about incoming marches.",
-		location = "city",
 		requirements = {
 			[1] = {food = 150, lumber = 1000, metal = 300, stone = 3000, build_time = 5 * 60},
 			[2] = {food = 300, lumber = 2000, metal = 600, stone = 6000, build_time = 5 * 60 * 2^1},
@@ -230,7 +225,6 @@ local buildings = {
 		max_level = 10,
 		location = "city",
 		description = "Houses lesser dragons, unlocks Swift Strike Dragons, Battle Dragons, and ability to research [[Dragonry]].",
-		location = "city",
 		requirements = {
 			[1] = {food = 1200, lumber = 2000, metal = 1000, stone = 800, gold = 800, build_time = 2 * 60},
 			[2] = {food = 2400, lumber = 4000, metal = 2000, stone = 1600, gold = 1600, build_time = 2 * 60 * 2^1},
@@ -262,7 +256,6 @@ local buildings = {
 		max_level = 10,
 		location = "city",
 		description = "Entertainment fills the hearts of your citizens, increases Happiness allowing you to set a higher [[Tax]].",
-		location = "city",
 		requirements = {
 			[1] = {food = 300, lumber = 2000, metal = 400, stone = 1000, build_time = 4 * 60},
 			[2] = {food = 600, lumber = 4000, metal = 800, stone = 2000, build_time = 4 * 60 * 2^1},
@@ -295,7 +288,6 @@ local buildings = {
 		max_level = 10,
 		location = "field",
 		description = "Generates Food.",
-		location = "field",
 		requirements = {
 			[1] = {food = 50, lumber = 300, metal = 150, stone = 200, population = 10, build_time = 15},
 			[2] = {food = 100, lumber = 600, metal = 300, stone = 400, population = 30, build_time = 30},
@@ -327,7 +319,6 @@ local buildings = {
 		max_level = 10,
 		location = "field",
 		description = "Generates Metal.",
-		location = "field",
 		requirements = {
 			[1] = {food = 210, lumber = 600, metal = 200, stone = 500, population = 10, build_time = 15},
 			[2] = {food = 420, lumber = 1200, metal = 400, stone = 1000, population = 30, build_time = 30},
@@ -359,7 +350,6 @@ local buildings = {
 		max_level = 10,
 		location = "field",
 		description = "Generates Stone.",
-		location = "field",
 		requirements = {
 			[1] = {food = 180, lumber = 500, metal = 400, stone = 150, population = 10, build_time = 15},
 			[2] = {food = 360, lumber = 1000, metal = 800, stone = 300, population = 30, build_time = 30},
@@ -391,7 +381,6 @@ local buildings = {
 		max_level = 10,
 		location = "field",
 		description = "Generates Lumber.",
-		location = "field",
 		requirements = {
 			[1] = {food = 100, lumber = 100, metal = 300, stone = 250, population = 10, build_time = 15},
 			[2] = {food = 200, lumber = 200, metal = 600, stone = 500, population = 30, build_time = 30},
@@ -423,7 +412,6 @@ local buildings = {
 		max_level = 10,
 		location = "city",
 		description = "The military headquarters, increases limits on marches.",
-		location = "city",
 		requirements = {
 			[1] = {food = 400, lumber = 600, stone = 2000, metal = 2000, build_time = 90},
 			[2] = {food = 800, lumber = 1200, stone = 4000, metal = 4000, build_time = 180},
@@ -435,7 +423,7 @@ local buildings = {
 			[8] = {food = 500000, lumber = 750000, stone = 2500000, metal = 2500000, build_time = 38880},
 			[9] = {food = 3000000, lumber = 4500000, stone = 15000000, metal = 15000000, build_time = 194400},
 			[10] = {food = 7500000, lumber = 11250000, stone = 37500000, metal = 37500000, build_time = 972000},
-			[11] = {food = 31250000, lumber = 46875000, stone = 156250000, metal = 156250000, build_time = 6804000},
+			--[11] = {food = 31250000, lumber = 46875000, stone = 156250000, metal = 156250000, build_time = 6804000},
 		},
 		unlocks = {
 			[1] = {general_count = 4, power = 30, marches = 1, troops_per_march = 10000},
@@ -448,7 +436,7 @@ local buildings = {
 			[8] = {general_count = 11, power = 3840, marches = 8, troops_per_march = 80000},
 			[9] = {general_count = 12, power = 7680, marches = 9, troops_per_march = 90000},
 			[10] = {general_count = 13, power = 15360, marches = 10, troops_per_march = 100000},
-			[11] = {power = 30720},
+			--[11] = {power = 30720},
 		}
 	},
 	science_center = {
@@ -457,7 +445,6 @@ local buildings = {
 		max_level = 10,
 		location = "city",
 		description = "The smartest people around gather here, unlocks ability to do [[Research]].",
-		location = "city",
 		requirements = {
 			[1] = {food = 500, lumber = 1000, stone = 3000, metal = 1000, build_time = 480},
 			[2] = {food = 1000, lumber = 2000, stone = 6000, metal = 2000, build_time = 960},
@@ -469,7 +456,7 @@ local buildings = {
 			[8] = {food = 625000, lumber = 1250000, stone = 3750000, metal = 1250000, build_time = 207360},
 			[9] = {food = 3750000, lumber = 7500000, stone = 22500000, metal = 7500000, build_time = 1036800},
 			[10] = {food = 9375000, lumber = 18750000, stone = 56250000, metal = 18750000, build_time = 5184000},
-			[11] = {food = 37500000, lumber = 75000000, stone = 225000000, metal = 75000000, build_time = 36288000},
+			--[11] = {food = 37500000, lumber = 75000000, stone = 225000000, metal = 75000000, build_time = 36288000},
 		},
 		unlocks = {
 			[1] = {power = 30},
@@ -482,7 +469,7 @@ local buildings = {
 			[8] = {power = 3840},
 			[9] = {power = 7680},
 			[10] = {power = 15360},
-			[11] = {power = 30720},
+			--[11] = {power = 30720},
 		}
 	},
 	dragon_keep = {
@@ -492,7 +479,6 @@ local buildings = {
 		location = "city",
 		description = "House of [[Great Dragon]] protecting your City, and is required to research [[Aerial Combat]].",
 		image_override = "Dragon keep zolmec.webp",
-		location = "city",
 		requirements = {
 			[1] = {food = 800, lumber = 5000, stone = 2400, metal = 1400, gold = 3000, build_time = 540},
 			[2] = {food = 1600, lumber = 10000, stone = 4800, metal = 2800, gold = 6000, build_time = 1080},
@@ -504,7 +490,7 @@ local buildings = {
 			[8] = {food = 1000000, lumber = 6250000, stone = 3000000, metal = 1750000, gold = 3750000, build_time = 233280},
 			[9] = {food = 6000000, lumber = 37500000, stone = 18000000, metal = 10500000, gold = 22500000, build_time = 1166400},
 			[10] = {food = 15000000, lumber = 93750000, stone = 45000000, metal = 26250000, gold = 56250000, build_time = 5832000},
-			[11] = {food = 62500000, lumber = 390625000, stone = 187500000, metal = 109375000, gold = 234375000, build_time = 40824000},
+			--[11] = {food = 62500000, lumber = 390625000, stone = 187500000, metal = 109375000, gold = 234375000, build_time = 40824000},
 		},
 		unlocks = {
 			[2] = {power = 100},
@@ -516,7 +502,7 @@ local buildings = {
 			[8] = {power = 3200},
 			[9] = {power = 6400},
 			[10] = {power = 12800},
-			[11] = {power = 25600},
+			--[11] = {power = 25600},
 		}
 	},
 	storage_vault = {
@@ -525,7 +511,6 @@ local buildings = {
 		max_level = 10,
 		location = "city",
 		description = "A safeguarded place protecting your resources.",
-		location = "city",
 		requirements = {
 			[1] = {food = 500, lumber = 1500, stone = 1000, metal = 1000, build_time = 300},
 			[2] = {food = 1000, lumber = 3000, stone = 2000, metal = 2000, build_time = 600},
@@ -537,7 +522,7 @@ local buildings = {
 			[8] = {food = 625000, lumber = 1875000, stone = 1250000, metal = 1250000, build_time = 129600},
 			[9] = {food = 3750000, lumber = 11250000, stone = 7500000, metal = 7500000, build_time = 648000},
 			[10] = {food = 9375000, lumber = 28125000, stone = 18750000, metal = 18750000, build_time = 3240000},
-			[11] = {food = 39062500, lumber = 117187500, stone = 78125000, metal = 78125000, build_time = 22680000},
+			--[11] = {food = 39062500, lumber = 117187500, stone = 78125000, metal = 78125000, build_time = 22680000},
 		},
 		unlocks = {
 			[1] = {power = 20},
@@ -550,7 +535,7 @@ local buildings = {
 			[8] = {power = 1280},
 			[9] = {power = 2560},
 			[10] = {power = 5120},
-			[11] = {power = 20480},
+			--[11] = {power = 20480},
 		}
 	},
 	fountain_of_life = {
@@ -559,7 +544,6 @@ local buildings = {
 		max_level = 10,
 		location = "city",
 		description = "Recovers a portion of troops lost in battle. Revive them with Elixir or resources before they expire.",
-		location = "city",
 		requirements = {
 			[1] = {food = 100, lumber = 100, stone = 100, gold = 100, build_time = 300},
 			[2] = {food = 1750000, lumber = 750000, stone = 750000, gold = 1750000, build_time = 600},
@@ -583,6 +567,38 @@ local buildings = {
 			[8] = {power = 1280},
 			[9] = {power = 2560},
 			[10] = {power = 5120},
+		}
+	},
+	garrison_water_outpost = {
+		id = 19,
+		first_levelup = 1,
+		max_level = 10,
+		location = "water_outpost",
+		description = "Where troops are trained, unlocks [[Fangtooth]] training at level 10.",
+		image_override = "Garrison water outpost.webp",
+		requirements = {
+			[1] = {food = 100, lumber = 100, stone = 100, gold = 100, build_time = 300},
+			[2] = {food = 1750000, lumber = 750000, stone = 750000, gold = 1750000, build_time = 600},
+			[3] = {food = 3150000, lumber = 1350000, stone = 1350000, metal = 3150000, build_time = 1200},
+			[4] = {food = 5950000, lumber = 2550000, stone = 2550000, gold = 5950000, build_time = 2400},
+			[5] = {food = 11200000, lumber = 4800000, stone = 4800000, gold = 11200000, build_time = 4800},
+			[6] = {food = 21700000, lumber = 9300000, stone = 9300000, gold = 21700000, build_time = 14400},
+			[7] = {food = 42000000, lumber = 18000000, stone = 18000000, gold = 42000000, build_time = 43200},
+			[8] = {food = 42000000, lumber = 18000000, stone = 18000000, gold = 42000000, build_time = 129600},
+			[9] = {food = 175000000, lumber = 75000000, stone = 75000000, gold = 175000000, build_time = 648000},
+			[10] = {food = 350000000, lumber = 150000000, stone = 150000000, gold = 350000000, build_time = 3240000},
+		},
+		unlocks = {
+			[1] = {power = 20},
+			[2] = {power = 20},
+			[3] = {power = 40},
+			[4] = {power = 80},
+			[5] = {power = 160},
+			[6] = {power = 320},
+			[7] = {power = 640},
+			[8] = {power = 1280},
+			[9] = {power = 2560},
+			[10] = {power = 5120, troops = {"[[Fangooth]]"}},
 		}
 	},
 }

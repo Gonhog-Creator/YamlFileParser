@@ -1,0 +1,176 @@
+local p = {}
+
+local data = mw.loadData("Module:Chests/data")
+
+-- Normalize chest name to canonical key
+local function normalizeName(name)
+	if not name then return nil end
+	name = mw.text.trim(name)
+	-- Convert to lowercase for comparison
+	local searchName = mw.ustring.lower(name)
+
+	for k, v in pairs(data) do
+		if mw.ustring.lower(k) == searchName then
+			return k
+		end
+	end
+	return nil
+end
+
+-- Public: return canonical name
+function p.getCanonicalName(frame)
+	local name = frame.args[1]
+	return normalizeName(name) or ""
+end
+
+-- Public: get a field for a chest
+function p.getField(frame)
+	local name = normalizeName(frame.args.name or frame.args[1])
+	local field = frame.args.field
+
+	if not name or not field then
+		return ""
+	end
+
+	local c = data[name]
+	if not c then
+		return ""
+	end
+
+	return c[field] or ""
+end
+
+-- Public: get chest ID
+function p.getID(frame)
+	local name = normalizeName(frame.args[1])
+	if not name then return "" end
+	return data[name].id or ""
+end
+
+-- Public: get pool ID
+function p.getPoolID(frame)
+	local name = normalizeName(frame.args[1])
+	if not name then return "" end
+	return data[name].pool_id or ""
+end
+
+-- Public: get number of rewards
+function p.getRewardCount(frame)
+	local name = normalizeName(frame.args[1])
+	if not name then return "" end
+	return #data[name].rewards or 0
+end
+
+-- Public: image (returns chest image for infobox)
+function p.getImage(frame)
+	local name = normalizeName(frame.args[1])
+	if not name then return "" end
+
+	local chestData = data[name]
+	if not chestData then return "" end
+
+	-- Use properly formatted name for automatic image search
+	local base = name:gsub("_", " ")
+	base = base:gsub("(%a)([%w]*)", function(first, rest)
+		return mw.ustring.upper(first) .. rest
+	end)
+
+	-- Check for .webp file first
+	local t = mw.title.new("File:" .. base .. ".webp")
+	if t and t.exists then
+		return string.format('[[File:%s.webp|32px]]', base)
+	end
+
+	-- Fallback to .png
+	return string.format('[[File:%s.png|32px]]', base)
+end
+
+-- Public: wikilink
+function p.getLink(frame)
+	local name = normalizeName(frame.args[1])
+	if not name then return "" end
+	local label = name:gsub("_", " ")
+	return string.format("[[%s|%s]]", name, label)
+end
+
+-- Format percentage
+local function fmtPercentage(weight, totalWeight)
+    if not weight or not totalWeight or totalWeight == 0 then return "0%" end
+    return string.format("%.2f%%", (weight / totalWeight) * 100)
+end
+
+-- Public: loot table
+function p.lootTable(frame)
+    local name = normalizeName(frame.args.name or frame.args[1])
+    if not name then return "" end
+    local chestData = data[name]
+    if not chestData then return "" end
+
+    -- Calculate total weight
+    local totalWeight = 0
+    for _, reward in ipairs(chestData.rewards) do
+        totalWeight = totalWeight + reward.weight
+    end
+
+    local out = {}
+    table.insert(out, '{| class="wikitable sortable"')
+    table.insert(out, "|+ Loot Table")
+    table.insert(out, "! Item !! Amount !! Weight !! Chance")
+
+    for _, reward in ipairs(chestData.rewards) do
+        local chance = fmtPercentage(reward.weight, totalWeight)
+        table.insert(out, "|-")
+        table.insert(out, "| [[" .. reward.name .. "]]")
+        table.insert(out, "| " .. reward.amount)
+        table.insert(out, "| " .. reward.weight)
+        table.insert(out, "| " .. chance)
+    end
+
+    table.insert(out, "|}")
+    return table.concat(out, "\n")
+end
+
+-- Public: loot list
+function p.lootList(frame)
+    local name = normalizeName(frame.args.name or frame.args[1])
+    if not name then return "" end
+    local chestData = data[name]
+    if not chestData then return "" end
+
+    local out = {}
+    if chestData.rewards and #chestData.rewards > 0 then
+        table.insert(out, ";Possible rewards:")
+        for _, reward in ipairs(chestData.rewards) do
+            local amountStr = reward.amount > 1 and " x" .. reward.amount or ""
+            table.insert(out, ": [[" .. reward.name .. "]]" .. amountStr)
+        end
+    else
+        table.insert(out, "No rewards found for this chest.")
+    end
+
+    return table.concat(out, "\n")
+end
+
+-- Public: metadata table
+function p.metadataTable(frame)
+    local name = normalizeName(frame.args.name or frame.args[1])
+    if not name then return "" end
+    local chestData = data[name]
+    if not chestData then return "" end
+
+    local out = {}
+    table.insert(out, '{| class="wikitable"')
+    table.insert(out, "|+ Chest Metadata")
+    table.insert(out, "! Property !! Value")
+    table.insert(out, "|-")
+    table.insert(out, "| Chest ID || " .. chestData.id)
+    table.insert(out, "|-")
+    table.insert(out, "| Loot Pool ID || " .. chestData.pool_id)
+    table.insert(out, "|-")
+    table.insert(out, "| Number of Rewards || " .. #chestData.rewards)
+    table.insert(out, "|}")
+
+    return table.concat(out, "\n")
+end
+
+return p

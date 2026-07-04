@@ -1,0 +1,23 @@
+[[Buildings]] are structures that can be constructed and upgraded to unlock [[Research]]es, [[Troops]], and other game mechanics.
+
+==City==
+The '''City''' is the inner core of your base, it's constructed around your Fortress and Dragon Keep, and is surrounded by a protective Wall.
+{{#invoke:Buildings/Tablemaker|table|location=city}}
+
+==Fields==
+The '''Fields''' are the outer part of your City, it's where you gather your [[Resources]].
+{{#invoke:Buildings/Tablemaker|table|location=field}}
+
+==Water Outpost==
+The '''Water Outpost''' is the first expansion of your empire. It allows you to control the [[Water Dragon]], train [[Fangtooth]]s, and generate a new item, the [[Fangtooth Respirator]].
+{{#invoke:Buildings/Tablemaker|table|location=water_outpost}}
+
+==Stone Outpost==
+The '''Stone Outpost''' is the second expansion of your empire. It allows you to control the [[Stone Dragon]], train [[Granite Ogre]]s, and generate a new item, the [[Glowing Mandrake]].
+{{#invoke:Buildings/Tablemaker|table|location=stone_outpost}}
+
+==Fire Outpost==
+The '''Fire Outpost''' is the third expansion of your empire. It allows you to control the [[Fire Dragon]], train [[Lava Jaw]]s, and generate a new item, the [[Volcanic Rune]].
+{{#invoke:Buildings/Tablemaker|table|location=fire_outpost}}
+
+[[Category:Content]]

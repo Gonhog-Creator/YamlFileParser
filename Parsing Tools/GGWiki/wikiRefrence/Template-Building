@@ -1,0 +1,59 @@
+<infobox layout="stacked" type="Building">
+<title source="name">
+    <default><div style="text-align:center">{{{name|{{BASEPAGENAME}}}}}</div></default>
+</title>
+
+<panel>
+    <!-- Main Image -->
+    <section>
+        <label></label>
+        <image source="image">
+            <default>{{#invoke:Buildings|getImage|{{{name|{{BASEPAGENAME}}}}}|override={{{image|}}}}}</default>
+            <alt><default>{{{name|{{BASEPAGENAME}}}}}</default></alt>
+        </image>
+    </section>
+</panel>
+
+<!-- Data sections -->
+<data source="max_level">
+    <label>Max Level</label>
+    <default>{{#invoke:Buildings|getMaxLevel|{{{name|{{BASEPAGENAME}}}}}}}</default>
+</data>
+
+<data source="description">
+    <label>Description</label>
+    <default>{{#invoke:Buildings|getField|field=description|name={{{name|{{BASEPAGENAME}}}}}}}</default>
+</data>
+
+<data source="requirements">
+    <label>Requirements</label>
+    <default>See [[#Requirements|Requirements section]] below</default>
+</data>
+
+<data source="unlocks">
+    <label>Unlocks</label>
+    <default>See [[#Unlocks|Unlocks section]] below</default>
+</data>
+</infobox>
+{{#invoke:Buildings|getField|field=description|name={{BASEPAGENAME}}}}
+
+== Requirements ==
+{{#invoke:Buildings|requirementsTable|name={{BASEPAGENAME}}}}
+
+== Unlocks ==
+{{#invoke:Buildings|unlocksTable|name={{BASEPAGENAME}}}}
+
+{{#vardefine:variations
+ | {{#invoke:Buildings/Tablemaker|variationsTable|name={{BASEPAGENAME}}}}
+}}
+
+{{#if: {{#pos:{{#var:variations}}|-}} |
+== Variations ==
+{{#var:variations}}
+}}
+
+<noinclude>
+__NOTOC__
+</noinclude>
+<noinclude>
+{{Documentation}}</noinclude>

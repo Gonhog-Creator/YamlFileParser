@@ -1,0 +1,43 @@
+<infobox layout="stacked" type="Chest">
+<title source="name">
+    <default><div style="text-align:center">{{{name|{{BASEPAGENAME}}}}}</div></default>
+</title>
+
+<panel>
+    <!-- Main Image -->
+    <section>
+        <label></label>
+        <image source="image">
+            <default>{{#invoke:Chests|getImage|{{{name|{{BASEPAGENAME}}}}}}}</default>
+            <alt><default>{{{name|{{BASEPAGENAME}}}}}</default></alt>
+        </image>
+    </section>
+</panel>
+
+<!-- Data sections -->
+<data source="id">
+    <label>Chest ID</label>
+    <default>{{#invoke:Chests|getID|{{{name|{{BASEPAGENAME}}}}}}}</default>
+</data>
+
+<data source="pool_id">
+    <label>Loot Pool ID</label>
+    <default>{{#invoke:Chests|getPoolID|{{{name|{{BASEPAGENAME}}}}}}}</default>
+</data>
+
+<data source="reward_count">
+    <label>Number of Rewards</label>
+    <default>{{#invoke:Chests|getRewardCount|{{{name|{{BASEPAGENAME}}}}}}}</default>
+</data>
+</infobox>
+
+{{#invoke:Chests|getField|field=description|name={{BASEPAGENAME}}}}
+
+== Loot Table ==
+{{#invoke:Chests|lootTable|name={{BASEPAGENAME}}}}
+
+<noinclude>
+__NOTOC__
+</noinclude>
+<noinclude>
+{{Documentation}}</noinclude>

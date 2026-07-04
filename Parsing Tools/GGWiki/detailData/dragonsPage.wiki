@@ -1,0 +1,22 @@
+The [[Dragons]] are the central progression units of Rise of Atlantis, serving as the player's primary source of power, combat, and strategic specialization. Unlike [[Swift Strike Dragon|Swift Strike Dragons]] and [[Battle Dragon|Battle Dragons]], which function as auxiliary battlefield units, these dragons are persistent, upgradable entities that grow alongside a player's city or outpost and define their military identity.
+
+Because they directly modify march strength, combat bonuses, and key strategic statistics, Dragons represent one of the most significant long-term investments in the game. Effective dragon development is essential for competitive play, alliance warfare, and progression into higher-tier content.
+
+This page provides a list of all dragons currently in the game.
+
+
+== Great Dragon==
+{{GreatDragon/Infobox|name=Great Dragon}}
+The [[Great Dragon]] is center of your city, and lives in the [[Dragon Keep]]. The [[Great Dragon]] is the first main dragon available to players in Rise of Atlantis and serves as a foundation of early dragon progression. Hatched and raised through upgrades, it introduces players to the core dragon growth system. At lower levels, Great Dragon does little else than look cute. Upon reaching Level 7, it gains the ability to enter battle alongside an army, marking the player's first access to direct dragon-led combat. When equipped with Dragon Armor, [[Great Dragon]]'s combat effectiveness increases significantly. The Great Dragon can be upgraded to level 10. Although it is eventually surpassed by higher-tier dragons, [[Great Dragon]] remains a critical early-game asset. Proper development and time investment can substantially improve early PvE performance, wild capture efficiency, and introductory PvP engagements. This page covers [[Great Dragon]]'s growth requirements and armor set.
+
+== Water Dragon==
+{{GreatDragon/Infobox|name=Water Dragon}}
+The [[Water Dragon]] is the heart of your [[Water Outpost]], and is the source of it's power. Hatched from a rare egg only found in deadly [[Lake|Lakes]], it unlocks a new chapter in your Empire: the ability to control a lake for your own and create a [[Water Outpost]]. Within your new expansion, you can train [[Fangtooth]]'s, generate [[Fangtooth Respirators]], and increase your army size. Search high level [[Lake|Lakes]] with one of your dragons to find it's elusive battle armor. When the set is complete, your [[Water Dragon]] can hunt the lands of Atlantis by your side.
+
+==Stone Dragon==
+{{GreatDragon/Infobox|name=Stone Dragon}}
+The [[Stone Dragon]] is hatched from a rare egg, found only in the caves of dangeorus [[Hill|Hills]]. It'll protect your [[Stone Outpost]] allowing it to grow alongisde itself, allowing you to train [[Granite Ogre|Granite Ogres]] using [[Glowing Mandrakes]], a unique new resource! Look for its sturdy armor with one of your dragons in high level [[Hill|Hills]] and soon enough he'll fly alongside your army across all Atlantis.
+
+== Fire Dragon==
+{{GreatDragon/Infobox|name=Fire Dragon}}
+The [[Fire Dragon]] is hatched from a rare egg, found only in the depths of dangerous [[Mountain|Mountains]]. It'll protect your [[Fire Outpost]] allowing it to grow alongside itself, allowing you to train [[Lava Jaw|Lava Jaws]] using [[Volcanic Runes]], a unique new resource! Look for its fierce armor with one of your dragons in high level [[Mountain|Mountains]] and soon enough he'll fly alongside your army across all Atlantis.

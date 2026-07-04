@@ -1,0 +1,321 @@
+local p = {}
+local buildings = mw.loadData("Module:Buildings/data")
+
+-- Format seconds into h/m/s
+local function fmtTime(seconds)
+    if not seconds then return "" end
+    local h = math.floor(seconds / 3600)
+    local m = math.floor((seconds % 3600) / 60)
+    local s = seconds % 60
+    if h > 0 then
+        return string.format("%dh %dm %ds", h, m, s)
+    elseif m > 0 then
+        return string.format("%dm %ds", m, s)
+    else
+        return string.format("%ds", s)
+    end
+end
+
+-- Capitalize each word in building names
+local function formatName(name)
+    local s = name:gsub("_", " ")
+    -- Capitalize first letter of each word
+    return s:gsub("(%a)([%w]*)", function(first, rest)
+        return mw.ustring.upper(first) .. rest
+    end)
+end
+
+-- Smart image selection with override support
+local function makeImage(name, buildingData)
+	-- Check for image override in building data first
+	if buildingData and buildingData.image_override then
+		return string.format('[[File:%s|100px|100px]]', buildingData.image_override)
+	end
+
+	-- Use properly formatted name for automatic image search
+	local base = formatName(name)
+	local t = mw.title.new("File:" .. base .. ".webp")
+	if t and t.exists then
+		return string.format('[[File:%s.webp|100px|100px]]', base)
+	end
+
+	for i = 1, 10 do
+		local t2 = mw.title.new("File:" .. base .. i .. ".webp")
+		if t2 and t2.exists then
+			return string.format('[[File:%s%d.webp|100px|100px]]', base, i)
+		end
+	end
+
+	-- fallback if no image exists
+	return string.format('[[File:%s.webp|100px|100px]]', base)
+end
+
+-- Gather all unique unlock columns across all levels
+local function gatherUnlockColumns(data)
+    local columns = {}
+    local seen = {}
+    for lvl = 1, data.max_level do
+        local unlock = data.unlocks[lvl] or {}
+        for k,_ in pairs(unlock) do
+            if not seen[k] then
+                table.insert(columns, k)
+                seen[k] = true
+            end
+        end
+    end
+    for i, col in ipairs(columns) do
+        columns[i] = col:gsub("_"," "):gsub("^%l", string.upper)
+    end
+    return columns
+end
+
+-- Format unlock cell for a given column
+local function fmtUnlockCell(unlock, columnName)
+    local key = columnName:lower():gsub(" ","_")
+    local val = unlock[key]
+    if not val then return "" end
+    if key == "troops" and type(val) == "table" then
+        return table.concat(val, ", ")
+    end
+    return tostring(val)
+end
+
+-- Format item requirements list
+local function formatItems(items)
+    if not items then return "" end
+    local parts = {}
+    for item, count in pairs(items) do
+        -- Normalize item name: convert snake_case to Title Case
+        local displayName = item:gsub("_", " ")
+        displayName = displayName:gsub("(%a)([%w]*)", function(first, rest)
+            return mw.ustring.upper(first) .. rest
+        end)
+        table.insert(parts, count .. "× [[" .. displayName .. "]]")
+    end
+    return table.concat(parts, "<br>")
+end
+
+-- Get building data by name, case-insensitive
+local function getBuilding(name)
+    local data = buildings[name]
+    if not data then
+        for k,v in pairs(buildings) do
+            if mw.ustring.lower(k) == mw.ustring.lower(name) then
+                return v, k
+            end
+        end
+    end
+    return data, name
+end
+
+-- Main Table function with location filtering support
+function p.table(frame)
+    local args = frame.args or {}
+    local filterName = args.name
+    local filterID = tonumber(args.id)
+    local locationFilter = args.location
+
+    local detailed = filterName or filterID
+
+    if detailed then
+        -- DETAILED TABLE (existing logic)
+        local name = filterName
+        if not name then return "" end
+        local data, canonicalName = getBuilding(name)
+        if not data then return "" end
+
+        local unlockCols = gatherUnlockColumns(data)
+        local out = {}
+        table.insert(out, '{| class="wikitable sortable"')
+        table.insert(out, "! Level !! Food !! Lumber !! Metal !! Stone !! Gold !! Items !! Build Time")
+        for _, col in ipairs(unlockCols) do
+            table.insert(out, "! " .. col)
+        end
+
+        for lvl = 1, data.max_level do
+            local req = data.requirements[lvl] or {}
+            local unlock = data.unlocks[lvl] or {}
+            table.insert(out, "|-")
+            table.insert(out, "| " .. lvl)
+            table.insert(out, "| " .. (req.food or ""))
+            table.insert(out, "| " .. (req.lumber or ""))
+            table.insert(out, "| " .. (req.metal or ""))
+            table.insert(out, "| " .. (req.stone or ""))
+            table.insert(out, "| " .. (req.gold or ""))
+            table.insert(out, "| " .. formatItems(req.items))
+            table.insert(out, "| " .. fmtTime(req.build_time))
+            for _, col in ipairs(unlockCols) do
+                table.insert(out, "| " .. fmtUnlockCell(unlock, col))
+            end
+        end
+
+        table.insert(out, "|}")
+        return table.concat(out, "\n")
+    else
+        -- SUMMARY TABLE with location filtering
+        local out = {}
+        table.insert(out, '{| class="wikitable sortable"')
+        table.insert(out, "! !! Building !! Description")
+
+        for name, data in pairs(buildings) do
+            if not locationFilter or data.location == locationFilter then
+                local displayName = formatName(name)
+                local description = data.description or ""
+                table.insert(out, "|-")
+                table.insert(out, "| " .. makeImage(name, data))
+                table.insert(out, "| [[" .. displayName .. "]]")
+                table.insert(out, "| " .. description)
+            end
+        end
+
+        table.insert(out, "|}")
+        return table.concat(out, "\n")
+    end
+end
+
+-- Local variations types to search for
+local localVariations = {"zolmec", "primus", "water_outpost", "stone_outpost", "fire_outpost"}
+
+-- Extract outpost type from variation filename
+local function getOutpostType(variation)
+    if variation:match("^water_outpost") then return "Water Outpost"
+    elseif variation:match("^stone_outpost") then return "Stone Outpost"
+    elseif variation:match("^fire_outpost") then return "Fire Outpost"
+    elseif variation:match("^garrison_water") then return "Water Outpost"
+    elseif variation:match("^garrison_stone") then return "Stone Outpost"
+    elseif variation:match("^garrison_fire") then return "Fire Outpost"
+    else return "Other" end
+end
+
+-- Enhanced variations table that displays data-defined variations only
+function p.variationsTable(frame)
+    local args = frame.args or {}
+    local name = args[1] or args.name
+    local showNames = args.show_names or args.showNames
+    if not name then return "" end
+
+    local buildingData, canonicalName = getBuilding(name)
+
+    -- Only show variations defined in building data
+    if buildingData and buildingData.variations then
+        -- Group variations by outpost type
+        local grouped = {}
+        for _, var in pairs(buildingData.variations) do
+            local outpostType = getOutpostType(var)
+            if not grouped[outpostType] then
+                grouped[outpostType] = {}
+            end
+            table.insert(grouped[outpostType], var)
+        end
+
+        -- Special case: add city variations for home building
+        if mw.ustring.lower(canonicalName or name) == "home" then
+            grouped["City"] = {"Home1.webp", "Home2.webp", "Home3.webp"}
+        end
+
+        -- Determine columns based on outpost types present
+        local columns = {}
+        for outpostType, _ in pairs(grouped) do
+            table.insert(columns, outpostType)
+        end
+        table.sort(columns)
+
+        if #columns == 0 then
+            return ""
+        end
+
+        local out = {}
+        table.insert(out, '{| class="wikitable sortable"')
+        table.insert(out, "! " .. table.concat(columns, " !! "))
+
+        -- Find max number of variations in any column
+        local maxRows = 0
+        for _, vars in pairs(grouped) do
+            if #vars > maxRows then maxRows = #vars end
+        end
+
+        -- Build rows
+        for row = 1, maxRows do
+            table.insert(out, "|-")
+            for _, col in ipairs(columns) do
+                local vars = grouped[col]
+                if vars and vars[row] then
+                    local var = vars[row]
+                    if showNames then
+                        -- Normalize variation name: convert snake_case to Title Case, remove .webp
+                        local displayName = var:gsub("%.webp$", "")
+                        displayName = displayName:gsub("_", " ")
+                        displayName = displayName:gsub("(%a)([%w]*)", function(first, rest)
+                            return mw.ustring.upper(first) .. rest
+                        end)
+                        table.insert(out, "| " .. displayName .. "<br>[[File:" .. var .. "|100px|100px]]")
+                    else
+                        table.insert(out, "| [[File:" .. var .. "|100px|100px]]")
+                    end
+                else
+                    table.insert(out, "|")
+                end
+            end
+        end
+
+        table.insert(out, "|}")
+        return table.concat(out, "\n")
+    end
+
+    return ""
+end
+
+-- Get any field
+function p.getField(frame)
+    local args = frame.args or {}
+    local name = args[1] or args.name
+    local field = args.field
+    local format = args.format or "plain"
+    if not name or not field then return "" end
+
+    local data = buildings[name]
+    if not data then
+        for k,v in pairs(buildings) do
+            if mw.ustring.lower(k) == mw.ustring.lower(name) then
+                data = v
+                break
+            end
+        end
+    end
+    if not data then return "" end
+
+    local val = data[field]
+    if not val then return "" end
+    return tostring(val)
+end
+
+-- Get max level
+function p.maxLevel(frame)
+    local args = frame.args or {}
+    local name = args[1] or args.name
+    if not name then return "" end
+    local data = buildings[name]
+    if not data then
+        for k,v in pairs(buildings) do
+            if mw.ustring.lower(k) == mw.ustring.lower(name) then
+                data = v
+                break
+            end
+        end
+    end
+    if not data then return "" end
+    return data.max_level or ""
+end
+
+-- Get image
+function p.getImage(frame)
+    local args = frame.args or {}
+    local name = args[1] or args.name
+    local override = args.override
+    if not name then return "" end
+    local data, canonicalName = getBuilding(name)
+    if not data then return "" end
+    return makeImage(canonicalName, override, data)
+end
+
+return p

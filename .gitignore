@@ -24,3 +24,7 @@ S3Automation/secrets.json
 /DailyReportTools/local_config.json
 local_config.json
 /.streamlit/secrets.toml
+
+#Database Saves
+/Parsing Tools/GGWiki/Download 2026-07-03T20-54-29-473Z/
+/Parsing Tools/GGWiki/outputImages/
